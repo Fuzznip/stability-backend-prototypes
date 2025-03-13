@@ -21,8 +21,7 @@ class Leaderboard(db.Model, Serializer):
     __tablename__ = 'leaderboard'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
-    stat_category = db.Column(db.String)
-    stat_value = db.Column(db.Integer)
+    diary_points = db.Column(db.Integer)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
 
     def serialize(self):
@@ -36,6 +35,21 @@ class Announcements(db.Model, Serializer):
     message = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
     is_pinned = db.Column(db.Boolean)
+
+    def serialize(self):
+        return Serializer.serialize(self)
+
+
+class Killcount(db.Model, Serializer):
+    __tablename__ = 'killcount'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    boss_name = db.Column(db.String)
+    kill_count = db.Column(db.Integer)
+    personal_best = db.Column(db.String)
+    scale = db.Column(db.Integer)
+    group = db.Column(JSONB)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
 
     def serialize(self):
         return Serializer.serialize(self)

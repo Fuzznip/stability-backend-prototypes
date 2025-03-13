@@ -11,7 +11,7 @@ def get_user_profile(id):
 
     return json.dumps(db.session.query(Users, Users.discord_id, id).serialize(), cls=UUIDEncoder)
 
-@app.route("/user/update", methods=['POST'])
+@app.route("/user/update", methods=['PUT'])
 def update_user_profile():
     data = Users(request.get_json())
     if data is None:
