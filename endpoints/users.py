@@ -15,6 +15,9 @@ def create_user():
     data = Users(**request.get_json())
     if data is None:
         return "No JSON received", 400
+    if Users.query.filter_by(discord_id=data.discord_id).first() is not None:
+        return "Id already exists", 400
+    data.id = None
     db.session.add(data)
     db.session.commit()
     return json.dumps(data.serialize(), cls=UUIDEncoder)
