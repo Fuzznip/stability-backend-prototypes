@@ -14,7 +14,7 @@ def get_announcements():
 
 @app.route("/announcements", methods=['POST'])
 def create_announcement():
-    data = Announcements(request.get_json())
+    data = Announcements(**request.get_json())
     if data is None:
         return "No JSON received", 400
     db.session.add(data)

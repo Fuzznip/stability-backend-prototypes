@@ -18,7 +18,7 @@ def bot_rank_promotion():
 
 @app.route("/bot/announcement", methods=['POST'])
 def bot_create_announcement():
-    data = Announcements(request.get_json())
+    data = Announcements(**request.get_json())
     if data is None:
         return "No JSON received", 400
     db.session.add(data)
