@@ -24,4 +24,5 @@ from models import *
 from endpoints import leaderboard, users, announcements, webhooks
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=5000)
