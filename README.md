@@ -24,3 +24,9 @@ Once that has been set, you can start the app with:
 ```commandline
 flask run
 ```
+
+or with a WSGI server:
+```commandline
+waitress-serve --host=0.0.0.0 --port=5000 app:app
+```
+
