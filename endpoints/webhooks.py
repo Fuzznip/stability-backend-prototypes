@@ -1,5 +1,5 @@
 from app import app, db
-from helper.helpers import UUIDEncoder
+from helper.helpers import ModelEncoder
 from flask import request
 from models.models import Webhook, Users, Announcements
 import json
@@ -13,7 +13,7 @@ def bot_rank_promotion():
     user = Users.query.filter_by(discord_id=data.discord_id).first()
     user.rank = data.rank
     db.session.commit()
-    return json.dumps(user.serialize(), cls=UUIDEncoder)
+    return json.dumps(user.serialize(), cls=ModelEncoder)
 
 
 @app.route("/bot/announcement", methods=['POST'])

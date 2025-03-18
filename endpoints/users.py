@@ -1,5 +1,5 @@
 from app import app, db
-from helper.helpers import UUIDEncoder
+from helper.helpers import ModelEncoder
 from flask import request
 from models.models import Users
 import json
@@ -7,7 +7,7 @@ import json
 
 @app.route("/user/<id>", methods=['GET'])
 def get_user_profile(id):
-    return json.dumps(Users.query.filter_by(discord_id=id).first().serialize(), cls=UUIDEncoder)
+    return json.dumps(Users.query.filter_by(discord_id=id).first().serialize(), cls=ModelEncoder)
 
 
 @app.route("/user", methods=['POST'])
@@ -20,7 +20,7 @@ def create_user():
     data.id = None
     db.session.add(data)
     db.session.commit()
-    return json.dumps(data.serialize(), cls=UUIDEncoder)
+    return json.dumps(data.serialize(), cls=ModelEncoder)
 
 
 @app.route("/user/<id>", methods=['PUT'])
@@ -33,4 +33,4 @@ def update_user_profile(id):
     user.rank = data.rank
     user.progression_data = data.progression_data
     db.session.commit()
-    return json.dumps(user.serialize(), cls=UUIDEncoder)
+    return json.dumps(user.serialize(), cls=ModelEncoder)
