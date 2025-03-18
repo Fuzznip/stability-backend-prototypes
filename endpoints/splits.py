@@ -14,29 +14,7 @@ def create_split():
     if user is None:
         return "Could not find User", 404
     data.id = None
+    data.split_contribution = (data.item_price / data.group_size) * (data.group_size - 1)
     db.session.add(data)
     db.session.commit()
     return json.dumps(data.serialize(), cls=ModelEncoder)
-
-
-@app.route("/split/<id>", methods=['GET'])
-def get_user_splits(id):
-    data = []
-    splits = Splits.query.filter_by(user_id=id).all()
-    if not splits:
-        if Users.query.filter_by(discord_id=id).first() is None:
-            return "Could not find User", 404
-    for row in splits:
-        data.append(row.serialize())
-    return data
-
-
-@app.route("/split/total/<id>", methods=['GET'])
-def get_user_total_splits(id):
-    if Users.query.filter_by(discord_id=id).first() is None:
-        return "Could not find User", 404
-    data = 0
-    splits = Splits.query.filter_by(user_id=id).all()
-    for row in splits:
-        data += row.split_amount
-    return str(data)
