@@ -5,7 +5,7 @@ from models.models import Splits, Users
 import json
 
 
-@app.route("/split", methods=['POST'])
+@app.route("/splits", methods=['POST'])
 def create_split():
     data = Splits(**request.get_json())
     if data is None:
