@@ -21,7 +21,7 @@ migrate = Migrate(app, db)
 from models import *
 
 # make app aware of all endpoints
-from endpoints import leaderboard, users, announcements, webhooks
+from endpoints import leaderboard, users, announcements, webhooks, splits
 
 if __name__ == '__main__':
     app.run(debug=False)

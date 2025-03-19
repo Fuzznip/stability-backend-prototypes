@@ -1,8 +1,6 @@
 from app import app, db
-from helper.helpers import UUIDEncoder
 from flask import request
 from models.models import Leaderboard, Killcount
-import json
 
 
 @app.route("/leaderboard", methods=['GET'])
