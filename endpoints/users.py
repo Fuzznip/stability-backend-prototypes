@@ -5,12 +5,12 @@ from models.models import Users, Splits
 import json
 
 
-@app.route("/user/<id>", methods=['GET'])
+@app.route("/users/<id>", methods=['GET'])
 def get_user_profile(id):
     return json.dumps(Users.query.filter_by(discord_id=id).first().serialize(), cls=ModelEncoder)
 
 
-@app.route("/user", methods=['POST'])
+@app.route("/users", methods=['POST'])
 def create_user():
     data = Users(**request.get_json())
     if data is None:
@@ -23,7 +23,7 @@ def create_user():
     return json.dumps(data.serialize(), cls=ModelEncoder)
 
 
-@app.route("/user/<id>", methods=['PUT'])
+@app.route("/users/<id>", methods=['PUT'])
 def update_user_profile(id):
     data = Users(**request.get_json())
     if data is None:
@@ -36,7 +36,7 @@ def update_user_profile(id):
     return json.dumps(user.serialize(), cls=ModelEncoder)
 
 
-@app.route("/user/<id>/split", methods=['GET'])
+@app.route("/users/<id>/splits", methods=['GET'])
 def get_user_splits(id):
     data = []
     splits = Splits.query.filter_by(user_id=id).all()
@@ -48,12 +48,12 @@ def get_user_splits(id):
     return data
 
 
-@app.route("/user/<id>/split/total/", methods=['GET'])
+@app.route("/users/<id>/splits/total/", methods=['GET'])
 def get_user_total_splits(id):
     if Users.query.filter_by(discord_id=id).first() is None:
         return "Could not find User", 404
     data = 0
     splits = Splits.query.filter_by(user_id=id).all()
     for row in splits:
-        data += row.split_amount
+        data += row.split_contribution
     return str(data)
