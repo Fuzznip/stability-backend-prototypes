@@ -4,11 +4,13 @@ from flask import request
 from models.models import Users, Splits
 import json
 
-
-@app.route("/users/<id>", methods=['GET'])
-def get_user_profile(id):
-    return json.dumps(Users.query.filter_by(discord_id=id).first().serialize(), cls=ModelEncoder)
-
+@app.route("/users", methods=['GET'])
+def get_users():
+    data = []
+    users = Users.query.all()
+    for row in users:
+        data.append(row.serialize())
+    return data
 
 @app.route("/users", methods=['POST'])
 def create_user():
@@ -22,6 +24,9 @@ def create_user():
     db.session.commit()
     return json.dumps(data.serialize(), cls=ModelEncoder)
 
+@app.route("/users/<id>", methods=['GET'])
+def get_user_profile(id):
+    return json.dumps(Users.query.filter_by(discord_id=id).first().serialize(), cls=ModelEncoder)
 
 @app.route("/users/<id>", methods=['PUT'])
 def update_user_profile(id):
@@ -35,6 +40,14 @@ def update_user_profile(id):
     db.session.commit()
     return json.dumps(user.serialize(), cls=ModelEncoder)
 
+@app.route("/users/<id>", methods=['DELETE'])
+def delete_user(id):
+    user = Users.query.filter_by(discord_id=id).first()
+    if user is None:
+        return "Could not find User", 404
+    db.session.delete(user)
+    db.session.commit()
+    return "User deleted", 200
 
 @app.route("/users/<id>/splits", methods=['GET'])
 def get_user_splits(id):
@@ -46,7 +59,6 @@ def get_user_splits(id):
     for row in splits:
         data.append(row.serialize())
     return data
-
 
 @app.route("/users/<id>/splits/total/", methods=['GET'])
 def get_user_total_splits(id):
