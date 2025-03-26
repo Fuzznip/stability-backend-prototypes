@@ -21,3 +21,17 @@ def create_announcement():
     db.session.commit()
     return "Message \"{0}\" Created".format(data.message), 200
 
+@app.route("/announcements/<id>", methods=['GET'])
+def get_announcement(id):
+    return Announcements.query.filter_by(id=id).first().serialize()
+
+@app.route("/announcements/<id>", methods=['PUT'])
+def update_announcement(id):
+    data = Announcements(**request.get_json())
+    if data is None:
+        return "No JSON received", 400
+    announcement = Announcements.query.filter_by(id=id).first()
+    announcement.message = data.message
+    db.session.commit()
+    return "Message \"{0}\" Updated".format(announcement.message), 200
+
