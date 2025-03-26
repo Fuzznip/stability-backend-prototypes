@@ -1,5 +1,5 @@
 from app import db
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from helper.helpers import Serializer
 import uuid
 import datetime
@@ -10,6 +10,7 @@ class Users(db.Model, Serializer):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     discord_id = db.Column(db.String, unique=True, nullable=False)
     runescape_name = db.Column(db.String, nullable=False)
+    previous_names = db.Column(ARRAY(db.String))
     rank = db.Column(db.String)
     progression_data = db.Column(JSONB)
 
