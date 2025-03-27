@@ -233,8 +233,11 @@
       "properties": {
         "discord_id": { "type": "string" },
         "runescape_name": { "type": "string" },
+        "previous_names": { "type": "array", "items": { "type": "string" } },
         "rank": { "type": "string" },
-        "progression_data": { "type": "object" }
+        "rank_points": { "type": "integer" },
+        "progression_data": { "type": "object" },
+        "join_date": { "type": "string" }
       }
     },
     "Leaderboard": {
@@ -272,6 +275,18 @@
         "split_contribution": { "type": "number" },
         "group_size": { "type": "integer" },
         "screenshot_link": { "type": "string" }
+      }
+    },
+    "ClanApplications": {
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "runescape_name": { "type": "string" },
+        "referral": { "type": "string" },
+        "reason": { "type": "string" },
+        "goals": { "type": "string" },
+        "submission_date": { "type": "string" },
+        "status": { "type": "string" }
       }
     }
   }
