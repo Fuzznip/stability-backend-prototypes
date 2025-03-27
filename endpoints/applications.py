@@ -6,8 +6,13 @@ import json, datetime
 
 @app.route("/applications", methods=['GET'])
 def get_applications():
+    params = request.args
+    filter = params.get('filter')
+    if filter is not None:
+        applications = ClanApplications.query.filter_by(status=filter).all()
+    else:
+        applications = ClanApplications.query.all()
     data = []
-    applications = ClanApplications.query.all()
     for row in applications:
         data.append(row.serialize())
     return data

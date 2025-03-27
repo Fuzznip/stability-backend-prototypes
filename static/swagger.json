@@ -230,6 +230,15 @@
       "get": {
         "summary": "Get all applications",
         "description": "Retrieve all clan applications.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Filter applications by status"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response"
