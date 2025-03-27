@@ -24,6 +24,7 @@ def drop_alembic_version_table():
         with engine.connect() as connection:
             logger.info("Dropping table 'alembic_version'...")
             connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
+            connection.commit()
             logger.info("Table 'alembic_version' dropped successfully.")
 
             # Verify the table has been dropped
