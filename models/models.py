@@ -84,13 +84,14 @@ class Splits(db.Model, Serializer):
 class ClanApplications(db.Model, Serializer):
     __tablename__ = 'applications'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String)
     runescape_name = db.Column(db.String, nullable=False)
     referral = db.Column(db.String)
     reason = db.Column(db.Text)
     goals = db.Column(db.Text)
-    submission_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
     status = db.Column(db.String, default='Pending')
+    verdict_reason = db.Column(db.Text)
+    verdict_timestamp = db.Column(db.DateTime)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
 
     def serialize(self):
