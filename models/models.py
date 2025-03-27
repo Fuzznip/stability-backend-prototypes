@@ -11,6 +11,7 @@ class Users(db.Model, Serializer):
     discord_id = db.Column(db.String, unique=True, nullable=False)
     runescape_name = db.Column(db.String, nullable=False)
     previous_names = db.Column(ARRAY(db.String))
+    is_member = db.Column(db.Boolean)
     rank = db.Column(db.String)
     rank_points = db.Column(db.Integer)
     progression_data = db.Column(JSONB)
