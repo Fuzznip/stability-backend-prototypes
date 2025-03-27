@@ -17,7 +17,7 @@ def create_application():
     data = ClanApplications(**request.get_json())
     if data is None:
         return "No JSON received", 400
-    if ClanApplications.query.filter_by(discord_id=data.discord_id).first() is not None:
+    if ClanApplications.query.filter_by(user_id=data.user_id).first() is not None:
         return "Id already exists", 400
     data.id = None
     db.session.add(data)
