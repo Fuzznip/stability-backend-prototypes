@@ -4,7 +4,6 @@ from flask import request
 from models.models import Splits, Users
 import json
 
-
 @app.route("/splits", methods=['POST'])
 def create_split():
     data = Splits(**request.get_json())
@@ -18,3 +17,4 @@ def create_split():
     db.session.add(data)
     db.session.commit()
     return json.dumps(data.serialize(), cls=ModelEncoder)
+

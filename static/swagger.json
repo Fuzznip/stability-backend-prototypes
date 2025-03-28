@@ -5,7 +5,7 @@
     "title": "Stability Backend Prototypes API",
     "description": "API documentation for the Stability Backend Prototypes."
   },
-  "host": "localhost:5000",
+  "host": "stability-backend-prototypes-production.up.railway.app",
   "basePath": "/",
   "schemes": ["http"],
   "paths": {

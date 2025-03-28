@@ -26,7 +26,10 @@ def create_user():
 
 @app.route("/users/<id>", methods=['GET'])
 def get_user_profile(id):
-    return json.dumps(Users.query.filter_by(discord_id=id).first().serialize(), cls=ModelEncoder)
+    user = Users.query.filter_by(discord_id=id).first()
+    if user is None:
+        return "Could not find User", 404
+    return json.dumps(user.serialize(), cls=ModelEncoder)
 
 @app.route("/users/<id>", methods=['PUT'])
 def update_user_profile(id):
