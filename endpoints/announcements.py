@@ -1,6 +1,8 @@
 from app import app, db
 from flask import request
 from models.models import Announcements
+from helper.helpers import ModelEncoder
+import json
 
 @app.route("/announcements", methods=['GET'])
 def get_announcements():
