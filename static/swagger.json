@@ -230,6 +230,15 @@
       "get": {
         "summary": "Get all applications",
         "description": "Retrieve all clan applications.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Filter applications by status"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response"
@@ -355,6 +364,7 @@
         "discord_id": { "type": "string" },
         "runescape_name": { "type": "string" },
         "previous_names": { "type": "array", "items": { "type": "string" } },
+        "is_member": { "type": "boolean" },
         "rank": { "type": "string" },
         "rank_points": { "type": "integer" },
         "progression_data": { "type": "object" },
