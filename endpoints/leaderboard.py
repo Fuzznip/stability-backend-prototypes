@@ -2,7 +2,6 @@ from app import app, db
 from flask import request
 from models.models import Leaderboard, Killcount
 
-
 @app.route("/leaderboard", methods=['GET'])
 def get_leaderboard():
     data = []
@@ -10,7 +9,6 @@ def get_leaderboard():
     for row in rows:
         data.append(row.serialize())
     return data
-
 
 @app.route("/leaderboard/<bossname>", methods=['GET'])
 def get_boss_leaderboard(bossname):
