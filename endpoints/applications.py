@@ -1,7 +1,7 @@
 from app import app, db
 from helper.helpers import ModelEncoder
 from flask import request
-from models.models import ClanApplications, Users
+from models.models import ClanApplications, Users, DiaryApplications
 import json, datetime
 
 @app.route("/applications", methods=['GET'])
@@ -115,4 +115,40 @@ def reject_application(id):
 
     db.session.commit()
     return "Application rejected", 200
+
+@app.route("/applications/diary", methods=['GET'])
+def get_applications_diary():
+    params = request.args
+    filter = params.get('filter')
+    if filter is not None:
+        applications = DiaryApplications.query.filter_by(status=filter).all()
+    else:
+        applications = DiaryApplications.query.all()
+    data = []
+    for row in applications:
+        data.append(row.serialize())
+    return data
+
+@app.route("/applications/diary", methods=['POST'])
+def create_application_diary():
+    data = DiaryApplications(**request.get_json())
+    if data is None:
+        return "No JSON received", 400
+    application = DiaryApplications.query.filter_by(user_id=data.user_id).first()
+    if application is not None:
+        if application.status == "Pending":
+            return "Application already exists", 400
+        elif application.status == "Accepted":
+            user = Users.query.filter_by(discord_id=data.user_id).first()
+            if user and user.is_member:
+                return "User is already a member", 400
+        elif application.status == "Rejected":
+            if (datetime.datetime.now() - application.verdict_timestamp).days < 30:
+                return "User has been rejected", 400
+
+    data.id = None
+    db.session.add(data)
+
+    db.session.commit()
+    return json.dumps(data.serialize(), cls=ModelEncoder)
 

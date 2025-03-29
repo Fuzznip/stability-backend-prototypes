@@ -3,14 +3,7 @@ from helper.helpers import ModelEncoder
 from flask import request
 from models.models import Users, Splits
 import json
-
-@app.route("/users", methods=['GET'])
-def get_users():
-    data = []
-    users = Users.query.all()
-    for row in users:
-        data.append(row.serialize())
-    return data
+from datetime import datetime
 
 @app.route("/users", methods=['POST'])
 def create_user():
@@ -43,32 +36,59 @@ def update_user_profile(id):
     db.session.commit()
     return json.dumps(user.serialize(), cls=ModelEncoder)
 
-@app.route("/users/<id>", methods=['DELETE'])
-def delete_user(id):
-    user = Users.query.filter_by(discord_id=id).first()
-    if user is None:
-        return "Could not find User", 404
-    db.session.delete(user)
-    db.session.commit()
-    return "User deleted", 200
-
 @app.route("/users/<id>/splits", methods=['GET'])
 def get_user_splits(id):
+    if Users.query.filter_by(discord_id=id).first() is None:
+        return "Could not find User", 404
+    
+    begin_date = request.args.get('begin_date')
+    end_date = request.args.get('end_date')
+    splits_query = Splits.query.filter_by(user_id=id)
+
+    if begin_date:
+        try:
+            begin_date = datetime.strptime(begin_date, "%Y-%m-%d")
+            splits_query = splits_query.filter(Splits.timestamp >= begin_date)
+        except ValueError:
+            return "Invalid begin_date format. Use YYYY-MM-DD.", 400
+        
+    if end_date:
+        try:
+            end_date = datetime.strptime(end_date, "%Y-%m-%d")
+            splits_query = splits_query.filter(Splits.timestamp <= end_date)
+        except ValueError:
+            return "Invalid end_date format. Use YYYY-MM-DD.", 400
+
     data = []
-    splits = Splits.query.filter_by(user_id=id).all()
-    if not splits:
-        if Users.query.filter_by(discord_id=id).first() is None:
-            return "Could not find User", 404
+    splits = splits_query.all()
     for row in splits:
         data.append(row.serialize())
-    return data
+    return json.dumps(data, cls=ModelEncoder)
 
-@app.route("/users/<id>/splits/total/", methods=['GET'])
+@app.route("/users/<id>/splits/total", methods=['GET'])
 def get_user_total_splits(id):
     if Users.query.filter_by(discord_id=id).first() is None:
         return "Could not find User", 404
+    
+    begin_date = request.args.get('begin_date')
+    end_date = request.args.get('end_date')
+    splits_query = Splits.query.filter_by(user_id=id)
+
+    if begin_date:
+        try:
+            begin_date = datetime.strptime(begin_date, "%Y-%m-%d")
+            splits_query = splits_query.filter(Splits.timestamp >= begin_date)
+        except ValueError:
+            return "Invalid begin_date format. Use YYYY-MM-DD.", 400
+        
+    if end_date:
+        try:
+            end_date = datetime.strptime(end_date, "%Y-%m-%d")
+            splits_query = splits_query.filter(Splits.timestamp <= end_date)
+        except ValueError:
+            return "Invalid end_date format. Use YYYY-MM-DD.", 400
     data = 0
-    splits = Splits.query.filter_by(user_id=id).all()
+    splits = splits_query.all()
     for row in splits:
         data += row.split_contribution
-    return str(data)
+    return json.dumps(data, cls=ModelEncoder)

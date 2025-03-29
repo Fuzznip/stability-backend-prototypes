@@ -29,7 +29,7 @@ app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 from models import *
 
 # make app aware of all endpoints
-from endpoints import leaderboard, users, announcements, webhooks, splits, applications
+from endpoints import users, announcements, splits, applications
 
 if __name__ == '__main__':
     app.run(debug=False)
