@@ -24,6 +24,17 @@ def get_diary_shorthands():
     data = list(data)
     return json.dumps(data, cls=ModelEncoder)
 
+@app.route("/diary/categories", methods=['GET'])
+def get_diary_categories():
+    tasks = DiaryTasks.query.all()
+    # Remove tasks with duplicate shorthands
+    unique_tasks = {task.diary_shorthand: task for task in tasks}.values()
+    data = []
+    for task in unique_tasks:
+        data.append({'diary_name': task.diary_name, 'shorthand': task.diary_shorthand, 'scale': task.scale})
+        
+    return json.dumps(data, cls=ModelEncoder)
+
 @app.route("/diary", methods=['POST'])
 def create_diary_task():
     data = DiaryTasks(**request.get_json())
