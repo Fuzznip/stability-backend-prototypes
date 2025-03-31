@@ -5,7 +5,7 @@ import os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
 
-from app import db
+from app import db, app  # Import the Flask app
 from models.models import Users, ClanPointsLog
 from datetime import datetime
 import logging
@@ -24,31 +24,34 @@ def update_weekly_points():
     Returns the number of users who received points.
     """
     logging.info("Starting weekly points update")
-    users = Users.query.all()
-    count = 0
     
-    for user in users:
-        if user.is_active and user.is_member and user.join_date:
-            # Calculate days since join
-            today = datetime.now().date()
-            join_date = user.join_date.date() if isinstance(user.join_date, datetime) else user.join_date
-            days_since_join = (today - join_date).days
-            
-            # Check if it's a multiple of 7
-            if days_since_join > 0:
-                user.time_points = days_since_join // 7 * 10
-
-                # Log the points
-                log_entry = ClanPointsLog(user_id=user.discord_id, points=10, tag="Weekly Points")
-                db.session.add(log_entry)
+    # Create application context
+    with app.app_context():
+        users = Users.query.all()
+        count = 0
+        
+        for user in users:
+            if user.is_active and user.is_member and user.join_date:
+                # Calculate days since join
+                today = datetime.now().date()
+                join_date = user.join_date.date() if isinstance(user.join_date, datetime) else user.join_date
+                days_since_join = (today - join_date).days
                 
-                if days_since_join % 7 == 0:
-                    logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
-                    count += 1
-    
-    db.session.commit()
-    logging.info(f"Added weekly points to {count} users")
-    return count
+                # Check if it's a multiple of 7
+                if days_since_join > 0:
+                    user.time_points = days_since_join // 7 * 10
+
+                    # Log the points
+                    log_entry = ClanPointsLog(user_id=user.discord_id, points=10, tag="Weekly Points")
+                    db.session.add(log_entry)
+                    
+                    if days_since_join % 7 == 0:
+                        logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
+                        count += 1
+        
+        db.session.commit()
+        logging.info(f"Added weekly points to {count} users")
+        return count
 
 if __name__ == "__main__":
     try:
