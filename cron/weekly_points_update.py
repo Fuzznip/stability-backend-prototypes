@@ -40,12 +40,11 @@ def update_weekly_points():
                 # Check if it's a multiple of 7
                 if days_since_join > 0:
                     user.time_points = days_since_join // 7 * 10
-
-                    # Log the points
-                    log_entry = ClanPointsLog(user_id=user.discord_id, points=10, tag="Weekly Points")
-                    db.session.add(log_entry)
                     
                     if days_since_join % 7 == 0:
+                        # Only log the point increase when the user has been a member for a multiple of 7 days
+                        log_entry = ClanPointsLog(user_id=user.discord_id, points=10, tag="Weekly Points")
+                        db.session.add(log_entry)
                         logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
                         count += 1
         
