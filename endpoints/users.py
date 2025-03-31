@@ -213,7 +213,6 @@ def apply_for_diary(id):
             return "Diary already completed", 400
         
         # Check if the user has already applied for the diary
-        print(diary[0].id)
         diary_application = DiaryApplications.query.filter_by(user_id=user.discord_id, target_diary_id=diary[0].id).first()
         if diary_application is not None and diary_application.status == "Pending":
             return "Diary application already pending", 400

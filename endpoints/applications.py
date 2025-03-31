@@ -5,6 +5,7 @@ from flask import request
 from models.models import ClanApplications, Users
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
 import json, datetime
+import logging
 
 @app.route("/applications", methods=['GET'])
 def get_applications():
@@ -210,7 +211,6 @@ def create_application_diary():
             return "Diary already completed", 400
         
         # Check if the user has already applied for the diary
-        print(diary[0].id)
         diary_application = DiaryApplications.query.filter_by(user_id=user.discord_id, target_diary_id=diary[0].id).first()
         if diary_application is not None and diary_application.status == "Pending":
             return "Diary application already pending", 400
@@ -310,7 +310,7 @@ def accept_application_diary(id):
                     points_difference = target_diary.diary_points - current_diary.diary_points
                 else:
                     points_difference = 0
-                    print("Could not find current diary for id: " + current_diary_progress.diary_id)
+                    logging.warning("Could not find current diary for id: " + current_diary_progress.diary_id)
                 
                 # Add points to the user
                 points = ClanPointsLog()
