@@ -1,17 +1,1206 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "1.0.0",
-    "title": "Stability Backend Prototypes API",
-    "description": "API documentation for the Stability Backend Prototypes."
+    "title": "Stability Backend API",
+    "description": "API for Stability Backend",
+    "version": "1.0.0"
   },
-  "host": "stability-backend-prototypes-production.up.railway.app",
+  "host": "localhost:5000",
   "basePath": "/",
-  "schemes": ["https"],
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "Users",
+      "description": "Operations for managing users"
+    },
+    {
+      "name": "Applications",
+      "description": "Operations for clan membership applications"
+    },
+    {
+      "name": "Diary Applications",
+      "description": "Operations for diary task applications"
+    },
+    {
+      "name": "Diary Tasks",
+      "description": "Operations for managing diary tasks"
+    },
+    {
+      "name": "Announcements",
+      "description": "Operations for managing announcements"
+    },
+    {
+      "name": "Splits",
+      "description": "Operations for managing item splits"
+    }
+  ],
   "paths": {
-    "$ref": "./swagger/paths/index.json"
+    "/users": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create a new user",
+        "description": "Creates a new user or reactivates an existing inactive user",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User created successfully",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "400": {
+            "description": "Invalid input or user already exists"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user profile",
+        "description": "Returns a user by discord ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Discord ID of the user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user profile",
+        "description": "Updates an existing user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Discord ID of the user"
+          },
+          {
+            "name": "user",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user",
+        "description": "Marks a user as inactive and removes pending applications",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Discord ID of the user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted successfully"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/users/{id}/splits": {
+      "get": {
+        "tags": ["Users", "Splits"],
+        "summary": "Get user splits",
+        "description": "Returns splits for a user with optional date filtering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Discord ID of the user"
+          },
+          {
+            "name": "begin_date",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date",
+            "description": "Filter splits from this date (format: YYYY-MM-DD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date",
+            "description": "Filter splits until this date (format: YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Split"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/users/{id}/splits/total": {
+      "get": {
+        "tags": ["Users", "Splits"],
+        "summary": "Get user total splits",
+        "description": "Returns total splits for a user with optional date filtering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Discord ID of the user"
+          },
+          {
+            "name": "begin_date",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date",
+            "description": "Filter splits from this date (format: YYYY-MM-DD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date",
+            "description": "Filter splits until this date (format: YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "400": {
+            "description": "Invalid date format"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/applications": {
+      "get": {
+        "tags": ["Applications"],
+        "summary": "Get clan applications",
+        "description": "Returns all clan applications, can be filtered by status",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Filter applications by status (Pending, Accepted, Rejected)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ClanApplications"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Applications"],
+        "summary": "Create clan application",
+        "description": "Submit a new application to join the clan",
+        "parameters": [
+          {
+            "name": "application",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClanApplications"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application created successfully or status updated",
+            "schema": {
+              "$ref": "#/definitions/ClanApplications"
+            }
+          },
+          "400": {
+            "description": "Application already exists, user already a member, or rejected less than 30 days ago"
+          }
+        }
+      }
+    },
+    "/applications/{id}": {
+      "get": {
+        "tags": ["Applications"],
+        "summary": "Get clan application",
+        "description": "Returns a specific clan application by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/ClanApplications"
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Applications"],
+        "summary": "Update clan application",
+        "description": "Updates an existing clan application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          },
+          {
+            "name": "application",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClanApplications"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application updated successfully",
+            "schema": {
+              "$ref": "#/definitions/ClanApplications"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Applications"],
+        "summary": "Delete clan application",
+        "description": "Deletes a clan application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application deleted successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/{id}/accept": {
+      "put": {
+        "tags": ["Applications"],
+        "summary": "Accept clan application",
+        "description": "Approves a clan application and updates user status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application accepted successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/{id}/reject": {
+      "put": {
+        "tags": ["Applications"],
+        "summary": "Reject clan application",
+        "description": "Rejects a clan application with reason",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          },
+          {
+            "name": "reason",
+            "in": "body",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "description": "Rejection reason"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application rejected successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/diary": {
+      "get": {
+        "tags": ["Diary Applications"],
+        "summary": "Get diary applications",
+        "description": "Returns all diary applications, can be filtered by status or user ID",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Filter applications by status (Pending, Accepted, Rejected)"
+          },
+          {
+            "name": "discord_id",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Filter applications by user's Discord ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DiaryApplications"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Diary Applications"],
+        "summary": "Apply for diary",
+        "description": "Submit an application for a diary task",
+        "parameters": [
+          {
+            "name": "application",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DiaryApplication"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Application submitted successfully",
+            "schema": {
+              "$ref": "#/definitions/DiaryTask"
+            }
+          },
+          "400": {
+            "description": "Invalid input, party size mismatch, or diary already completed"
+          },
+          "404": {
+            "description": "User or diary not found"
+          }
+        }
+      }
+    },
+    "/applications/diary/{id}": {
+      "get": {
+        "tags": ["Diary Applications"],
+        "summary": "Get diary application",
+        "description": "Returns a specific diary application by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/DiaryApplications"
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/diary/{id}/accept": {
+      "put": {
+        "tags": ["Diary Applications"],
+        "summary": "Accept diary application",
+        "description": "Approves a diary application and updates user progress and points",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application accepted successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "successful": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of Discord IDs that were successfully updated"
+                },
+                "failed": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of Discord IDs or RuneScape names that failed to update"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Application is not pending"
+          },
+          "404": {
+            "description": "Application not found or diary not found"
+          }
+        }
+      }
+    },
+    "/applications/diary/{id}/reject": {
+      "put": {
+        "tags": ["Diary Applications"],
+        "summary": "Reject diary application",
+        "description": "Rejects a diary application with reason",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Application ID"
+          },
+          {
+            "name": "reason",
+            "in": "body",
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "description": "Rejection reason"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application rejected successfully"
+          },
+          "400": {
+            "description": "Application is not pending"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/announcements": {
+      "get": {
+        "tags": ["Announcements"],
+        "summary": "Get announcements",
+        "description": "Returns all announcements",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Announcements"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Announcements"],
+        "summary": "Create announcement",
+        "description": "Creates a new announcement",
+        "parameters": [
+          {
+            "name": "announcement",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Announcements"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement created successfully",
+            "schema": {
+              "$ref": "#/definitions/Announcements"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/announcements/{id}": {
+      "get": {
+        "tags": ["Announcements"],
+        "summary": "Get announcement",
+        "description": "Returns a specific announcement by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Announcement ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/Announcements"
+            }
+          },
+          "404": {
+            "description": "Announcement not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Announcements"],
+        "summary": "Update announcement",
+        "description": "Updates an existing announcement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Announcement ID"
+          },
+          {
+            "name": "announcement",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Announcements"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement updated successfully",
+            "schema": {
+              "$ref": "#/definitions/Announcements"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Announcement not found"
+          }
+        }
+      }
+    },
+    "/diary": {
+      "get": {
+        "tags": ["Diary Tasks"],
+        "summary": "Get diary tasks",
+        "description": "Returns all diary tasks, can be filtered by content",
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Filter tasks by diary shorthand content"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DiaryTask"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Diary Tasks"],
+        "summary": "Create diary task",
+        "description": "Creates a new diary task",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DiaryTask"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diary task created successfully",
+            "schema": {
+              "$ref": "#/definitions/DiaryTask"
+            }
+          },
+          "400": {
+            "description": "Invalid input or task already exists"
+          }
+        }
+      }
+    },
+    "/diary/{id}": {
+      "get": {
+        "tags": ["Diary Tasks"],
+        "summary": "Get diary task",
+        "description": "Returns a specific diary task by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Diary task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "$ref": "#/definitions/DiaryTask"
+            }
+          },
+          "404": {
+            "description": "Diary task not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Diary Tasks"],
+        "summary": "Update diary task",
+        "description": "Updates an existing diary task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Diary task ID"
+          },
+          {
+            "name": "task",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DiaryTask"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diary task updated successfully",
+            "schema": {
+              "$ref": "#/definitions/DiaryTask"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Diary task not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Diary Tasks"],
+        "summary": "Delete diary task",
+        "description": "Deletes a diary task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid",
+            "description": "Diary task ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diary task deleted successfully"
+          },
+          "404": {
+            "description": "Diary task not found"
+          }
+        }
+      }
+    },
+    "/diary/shorthands": {
+      "get": {
+        "tags": ["Diary Tasks"],
+        "summary": "Get diary shorthands",
+        "description": "Returns all unique diary shorthands",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/splits": {
+      "get": {
+        "tags": ["Splits"],
+        "summary": "Get splits",
+        "description": "Returns all splits, can be filtered by date range",
+        "parameters": [
+          {
+            "name": "begin_date",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date",
+            "description": "Filter splits from this date (format: YYYY-MM-DD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date",
+            "description": "Filter splits until this date (format: YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Splits"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Splits"],
+        "summary": "Create split",
+        "description": "Records a new split contribution and awards points to the user",
+        "parameters": [
+          {
+            "name": "split",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Splits"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Split created successfully",
+            "schema": {
+              "$ref": "#/definitions/Splits"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    }
   },
   "definitions": {
-    "$ref": "./swagger/definitions/index.json"
+    "User": {
+      "type": "object",
+      "properties": {
+        "discord_id": {
+          "type": "string"
+        },
+        "runescape_name": {
+          "type": "string"
+        },
+        "previous_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_member": {
+          "type": "boolean"
+        },
+        "rank": {
+          "type": "string"
+        },
+        "rank_points": {
+          "type": "integer"
+        },
+        "progression_data": {
+          "type": "object"
+        },
+        "achievements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "join_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Split": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "split_contribution": {
+          "type": "number",
+          "format": "float"
+        },
+        "split_source": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DiaryApplication": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Discord ID of the user submitting the application"
+        },
+        "diary_shorthand": {
+          "type": "string"
+        },
+        "time_split": {
+          "type": "string",
+          "description": "Time format: MM:SS.s or HH:MM:SS.s"
+        },
+        "party": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of RuneScape names of party members"
+        },
+        "proof": {
+          "type": "string",
+          "description": "Link to proof of completion"
+        }
+      },
+      "required": ["user_id", "diary_shorthand"]
+    },
+    "DiaryTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "diary_shorthand": {
+          "type": "string"
+        },
+        "diary_name": {
+          "type": "string"
+        },
+        "diary_description": {
+          "type": "string"
+        },
+        "diary_time": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "string"
+        }
+      }
+    },
+    "ClanApplications": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "runescape_name": {
+          "type": "string"
+        },
+        "referral": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "goals": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Accepted", "Rejected"]
+        },
+        "verdict_reason": {
+          "type": "string"
+        },
+        "verdict_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DiaryApplications": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "diary_shorthand": {
+          "type": "string"
+        },
+        "time_split": {
+          "type": "string"
+        },
+        "party": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proof": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Approved", "Rejected"]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Announcements": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "author_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "is_pinned": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Splits": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "split_contribution": {
+          "type": "number",
+          "format": "float"
+        },
+        "split_source": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
   }
 }

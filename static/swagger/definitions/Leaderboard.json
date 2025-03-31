@@ -1,7 +1,0 @@
-{
-  "type": "object",
-  "properties": {
-    "user_id": { "type": "string" },
-    "diary_points": { "type": "integer" }
-  }
-}

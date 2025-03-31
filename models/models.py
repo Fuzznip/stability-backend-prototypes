@@ -179,7 +179,7 @@ class DiaryTasks(db.Model, Serializer):
 class DiaryApplications(db.Model, Serializer):
     __tablename__ = 'diary_applications'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.discord_id'))
     runescape_name = db.Column(db.String, nullable=False)
     diary_name = db.Column(db.String, nullable=False)
     diary_shorthand = db.Column(db.String, nullable=False)
@@ -188,7 +188,7 @@ class DiaryApplications(db.Model, Serializer):
     time_split = db.Column(db.String)
     proof = db.Column(db.String)
     status = db.Column(db.String, default='Pending')
-    target_diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id'), nullable=True)
+    target_diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id'))
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
