@@ -35,6 +35,9 @@ def create_user():
         user.join_date = data.join_date
         user.timestamp = datetime.now()
         user.is_active = True
+        user.diary_points = data.diary_points
+        user.event_points = data.event_points
+        user.time_points = data.time_points
     else:
         db.session.add(data)
     db.session.commit()

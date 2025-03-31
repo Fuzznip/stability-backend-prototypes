@@ -53,6 +53,9 @@ def create_application():
     user.rank_points = 0
     user.is_member = False
     user.is_active = True
+    user.diary_points = 0
+    user.event_points = 0
+    user.time_points = 0
     db.session.add(user)
 
     db.session.commit()
@@ -280,7 +283,8 @@ def accept_application_diary(id):
             points.timestamp = datetime.datetime.now()
             db.session.add(points)
 
-            user.rank_points += target_diary.diary_points
+            user.diary_points += target_diary.diary_points
+            user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
 
             update_successful.append(user_id)
         else:
@@ -319,7 +323,8 @@ def accept_application_diary(id):
                 points.timestamp = datetime.datetime.now()
                 db.session.add(points)
                 
-                user.rank_points += points_difference
+                user.diary_points += points_difference
+                user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
 
                 update_successful.append(user_id)
             else:
