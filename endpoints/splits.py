@@ -14,7 +14,9 @@ def create_split():
     if user is None:
         return "Could not find User", 404
     data.id = None
-    data.split_contribution = (data.item_price / data.group_size) * (data.group_size - 1)
+    if int(data.group_size) == 0:
+        return "Group size cannot be zero", 400
+    data.split_contribution = (int(data.item_price) / int(data.group_size)) * (int(data.group_size) - 1)
 
     split_points = data.split_contribution * (10 / 4_000_000)
     split_points = round(split_points, 2)

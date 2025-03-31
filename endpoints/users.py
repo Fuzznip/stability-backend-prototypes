@@ -46,8 +46,14 @@ def create_user():
 @app.route("/users/<id>", methods=['GET'])
 def get_user_profile(id):
     user = Users.query.filter_by(discord_id=id).first()
-    if user is None or not user.is_active:
+    if user is None:
+        user = Users.query.filter(Users.runescape_name.ilike(id)).first()
+        if user is None:
+            return "Could not find User", 404
+    
+    if not user.is_active:
         return "Could not find User", 404
+    
     return json.dumps(user.serialize(), cls=ModelEncoder)
 
 @app.route("/users/<id>", methods=['PUT'])
