@@ -1,340 +1,332 @@
 {
-  "swagger": "2.0",
+  "openapi": "3.0.0",
   "info": {
     "title": "Stability Backend API",
     "description": "API for Stability Backend",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "contact": {
+      "email": "admin@example.com"
+    }
   },
-  "host": "localhost:5000",
-  "basePath": "/",
-  "schemes": [
-    "http"
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current server"
+    }
   ],
   "tags": [
     {
-      "name": "Users",
-      "description": "Operations for managing users"
+      "name": "users",
+      "description": "User management operations"
     },
     {
-      "name": "Applications",
-      "description": "Operations for clan membership applications"
+      "name": "announcements",
+      "description": "Announcement operations"
     },
     {
-      "name": "Diary Applications",
-      "description": "Operations for diary task applications"
+      "name": "splits",
+      "description": "Split management operations"
     },
     {
-      "name": "Diary Tasks",
-      "description": "Operations for managing diary tasks"
+      "name": "applications",
+      "description": "Application management operations"
     },
     {
-      "name": "Announcements",
-      "description": "Operations for managing announcements"
-    },
-    {
-      "name": "Splits",
-      "description": "Operations for managing item splits"
+      "name": "diary",
+      "description": "Diary tasks operations"
     }
   ],
   "paths": {
-    "/users": {
+    "/announcements": {
       "get": {
-        "tags": ["Users"],
-        "summary": "Get all users",
-        "description": "Returns a list of all users in the system",
+        "tags": [
+          "announcements"
+        ],
+        "summary": "Get all announcements",
+        "description": "Returns a list of all announcements",
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/User"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Announcement"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "tags": ["Users"],
-        "summary": "Create a new user",
-        "description": "Creates a new user or reactivates an existing inactive user",
-        "parameters": [
-          {
-            "name": "user",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/User"
+        "tags": [
+          "announcements"
+        ],
+        "summary": "Create a new announcement",
+        "description": "Creates a new announcement in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAnnouncement"
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "200": {
-            "description": "User created successfully",
-            "schema": {
-              "$ref": "#/definitions/User"
+          "201": {
+            "description": "Announcement created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announcement"
+                }
+              }
             }
           },
           "400": {
-            "description": "Invalid input or user already exists"
+            "description": "Invalid input"
           }
         }
       }
     },
-    "/users/{id}": {
+    "/announcements/{announcementId}": {
       "get": {
-        "tags": ["Users"],
-        "summary": "Get user profile",
-        "description": "Returns a user by discord ID",
+        "tags": [
+          "announcements"
+        ],
+        "summary": "Get announcement by ID",
+        "description": "Returns a single announcement",
         "parameters": [
           {
-            "name": "id",
+            "name": "announcementId",
             "in": "path",
+            "description": "ID of the announcement to return",
             "required": true,
-            "type": "string",
-            "description": "Discord ID of the user"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/User"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announcement"
+                }
+              }
             }
           },
           "404": {
-            "description": "User not found"
+            "description": "Announcement not found"
           }
         }
       },
       "put": {
-        "tags": ["Users"],
-        "summary": "Update user profile",
-        "description": "Updates an existing user",
+        "tags": [
+          "announcements"
+        ],
+        "summary": "Update announcement",
+        "description": "Updates an existing announcement",
         "parameters": [
           {
-            "name": "id",
+            "name": "announcementId",
             "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "Discord ID of the user"
-          },
-          {
-            "name": "user",
-            "in": "body",
+            "description": "ID of the announcement to update",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/User"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAnnouncement"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "User updated successfully",
-            "schema": {
-              "$ref": "#/definitions/User"
+            "description": "Announcement updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announcement"
+                }
+              }
             }
           },
           "400": {
             "description": "Invalid input"
           },
           "404": {
-            "description": "User not found"
+            "description": "Announcement not found"
           }
         }
       },
       "delete": {
-        "tags": ["Users"],
-        "summary": "Delete user",
-        "description": "Marks a user as inactive and removes pending applications",
+        "tags": [
+          "announcements"
+        ],
+        "summary": "Delete announcement",
+        "description": "Deletes an announcement",
         "parameters": [
           {
-            "name": "id",
+            "name": "announcementId",
             "in": "path",
+            "description": "ID of the announcement to delete",
             "required": true,
-            "type": "string",
-            "description": "Discord ID of the user"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User deleted successfully"
-          },
-          "404": {
-            "description": "User not found"
-          }
-        }
-      }
-    },
-    "/users/{id}/splits": {
-      "get": {
-        "tags": ["Users", "Splits"],
-        "summary": "Get user splits",
-        "description": "Returns splits for a user with optional date filtering",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "Discord ID of the user"
-          },
-          {
-            "name": "begin_date",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date",
-            "description": "Filter splits from this date (format: YYYY-MM-DD)"
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date",
-            "description": "Filter splits until this date (format: YYYY-MM-DD)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Split"
-              }
+              "type": "string",
+              "format": "uuid"
             }
-          },
-          "400": {
-            "description": "Invalid date format"
-          },
-          "404": {
-            "description": "User not found"
-          }
-        }
-      }
-    },
-    "/users/{id}/splits/total": {
-      "get": {
-        "tags": ["Users", "Splits"],
-        "summary": "Get user total splits",
-        "description": "Returns total splits for a user with optional date filtering",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "description": "Discord ID of the user"
-          },
-          {
-            "name": "begin_date",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date",
-            "description": "Filter splits from this date (format: YYYY-MM-DD)"
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date",
-            "description": "Filter splits until this date (format: YYYY-MM-DD)"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "type": "number",
-              "format": "float"
-            }
-          },
-          "400": {
-            "description": "Invalid date format"
+          "204": {
+            "description": "Announcement deleted successfully"
           },
           "404": {
-            "description": "User not found"
+            "description": "Announcement not found"
           }
         }
       }
     },
     "/applications": {
       "get": {
-        "tags": ["Applications"],
-        "summary": "Get clan applications",
-        "description": "Returns all clan applications, can be filtered by status",
+        "tags": [
+          "applications"
+        ],
+        "summary": "Get all applications",
+        "description": "Returns a list of all clan applications with optional filtering",
         "parameters": [
           {
             "name": "filter",
             "in": "query",
+            "description": "Filter by application status",
             "required": false,
-            "type": "string",
-            "description": "Filter applications by status (Pending, Accepted, Rejected)"
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Pending",
+                "Accepted",
+                "Rejected"
+              ]
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/ClanApplications"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Application"
+                  }
+                },
+                "example": [
+                  {
+                    "goals": "Improve my skills",
+                    "id": "6844f93f-f605-4ac8-9a60-59cc3545f1a3",
+                    "reason": "I want to join",
+                    "referral": "Friend",
+                    "runescape_name": "TestUser",
+                    "status": "Accepted",
+                    "timestamp": "Fri, 28 Mar 2025 11:22:00 GMT",
+                    "user_id": "12345",
+                    "verdict_reason": null,
+                    "verdict_timestamp": "Fri, 28 Mar 2025 11:23:59 GMT"
+                  }
+                ]
               }
             }
           }
         }
       },
       "post": {
-        "tags": ["Applications"],
-        "summary": "Create clan application",
-        "description": "Submit a new application to join the clan",
-        "parameters": [
-          {
-            "name": "application",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/ClanApplications"
+        "tags": [
+          "applications"
+        ],
+        "summary": "Create a new application",
+        "description": "Creates a new clan application",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewApplication"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Application created successfully or status updated",
-            "schema": {
-              "$ref": "#/definitions/ClanApplications"
+            "description": "Application status updated to pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Application created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
             }
           },
           "400": {
-            "description": "Application already exists, user already a member, or rejected less than 30 days ago"
+            "description": "Invalid input or application issues"
           }
         }
       }
     },
     "/applications/{id}": {
       "get": {
-        "tags": ["Applications"],
-        "summary": "Get clan application",
-        "description": "Returns a specific clan application by ID",
+        "tags": [
+          "applications"
+        ],
+        "summary": "Get application by ID",
+        "description": "Returns a single application",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the application to return",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/ClanApplications"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
             }
           },
           "404": {
@@ -343,32 +335,42 @@
         }
       },
       "put": {
-        "tags": ["Applications"],
-        "summary": "Update clan application",
-        "description": "Updates an existing clan application",
+        "tags": [
+          "applications"
+        ],
+        "summary": "Update application",
+        "description": "Updates an existing application",
         "parameters": [
           {
             "name": "id",
             "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
-          },
-          {
-            "name": "application",
-            "in": "body",
+            "description": "ID of the application to update",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/ClanApplications"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewApplication"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Application updated successfully",
-            "schema": {
-              "$ref": "#/definitions/ClanApplications"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
             }
           },
           "400": {
@@ -380,17 +382,21 @@
         }
       },
       "delete": {
-        "tags": ["Applications"],
-        "summary": "Delete clan application",
-        "description": "Deletes a clan application",
+        "tags": [
+          "applications"
+        ],
+        "summary": "Delete application",
+        "description": "Deletes an application",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the application to delete",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -405,17 +411,21 @@
     },
     "/applications/{id}/accept": {
       "put": {
-        "tags": ["Applications"],
-        "summary": "Accept clan application",
-        "description": "Approves a clan application and updates user status",
+        "tags": [
+          "applications"
+        ],
+        "summary": "Accept application",
+        "description": "Accepts an application and updates user status",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the application to accept",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -430,33 +440,37 @@
     },
     "/applications/{id}/reject": {
       "put": {
-        "tags": ["Applications"],
-        "summary": "Reject clan application",
-        "description": "Rejects a clan application with reason",
+        "tags": [
+          "applications"
+        ],
+        "summary": "Reject application",
+        "description": "Rejects an application",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the application to reject",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
-          },
-          {
-            "name": "reason",
-            "in": "body",
-            "required": false,
             "schema": {
-              "type": "object",
-              "properties": {
-                "reason": {
-                  "type": "string",
-                  "description": "Rejection reason"
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Application rejected successfully"
@@ -469,60 +483,74 @@
     },
     "/applications/diary": {
       "get": {
-        "tags": ["Diary Applications"],
-        "summary": "Get diary applications",
-        "description": "Returns all diary applications, can be filtered by status or user ID",
+        "tags": [
+          "diary applications"
+        ],
+        "summary": "Get all diary applications",
+        "description": "Returns a list of all diary applications with optional filtering",
         "parameters": [
           {
             "name": "filter",
             "in": "query",
+            "description": "Filter by application status",
             "required": false,
-            "type": "string",
-            "description": "Filter applications by status (Pending, Accepted, Rejected)"
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Pending",
+                "Accepted",
+                "Rejected"
+              ]
+            }
           },
           {
             "name": "discord_id",
             "in": "query",
+            "description": "Filter by discord ID",
             "required": false,
-            "type": "string",
-            "description": "Filter applications by user's Discord ID"
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/DiaryApplications"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiaryApplication"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "tags": ["Diary Applications"],
-        "summary": "Apply for diary",
-        "description": "Submit an application for a diary task",
-        "parameters": [
-          {
-            "name": "application",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/DiaryApplication"
+        "tags": [
+          "diary applications"
+        ],
+        "summary": "Create a new diary application",
+        "description": "Creates a new diary application",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDiaryApplication"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "201": {
-            "description": "Application submitted successfully",
-            "schema": {
-              "$ref": "#/definitions/DiaryTask"
-            }
+            "description": "Diary application created successfully"
           },
           "400": {
-            "description": "Invalid input, party size mismatch, or diary already completed"
+            "description": "Invalid input or application issues"
           },
           "404": {
             "description": "User or diary not found"
@@ -532,24 +560,32 @@
     },
     "/applications/diary/{id}": {
       "get": {
-        "tags": ["Diary Applications"],
-        "summary": "Get diary application",
-        "description": "Returns a specific diary application by ID",
+        "tags": [
+          "diary applications"
+        ],
+        "summary": "Get diary application by ID",
+        "description": "Returns a single diary application",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the diary application to return",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/DiaryApplications"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryApplication"
+                }
+              }
             }
           },
           "404": {
@@ -560,38 +596,44 @@
     },
     "/applications/diary/{id}/accept": {
       "put": {
-        "tags": ["Diary Applications"],
+        "tags": [
+          "diary applications"
+        ],
         "summary": "Accept diary application",
-        "description": "Approves a diary application and updates user progress and points",
+        "description": "Accepts a diary application and updates user progress",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the diary application to accept",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Application accepted successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "successful": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "List of Discord IDs that were successfully updated"
-                },
-                "failed": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "List of Discord IDs or RuneScape names that failed to update"
+            "description": "Diary application accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "successful": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "failed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -600,43 +642,47 @@
             "description": "Application is not pending"
           },
           "404": {
-            "description": "Application not found or diary not found"
+            "description": "Application or diary not found"
           }
         }
       }
     },
     "/applications/diary/{id}/reject": {
       "put": {
-        "tags": ["Diary Applications"],
+        "tags": [
+          "diary applications"
+        ],
         "summary": "Reject diary application",
-        "description": "Rejects a diary application with reason",
+        "description": "Rejects a diary application",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the diary application to reject",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Application ID"
-          },
-          {
-            "name": "reason",
-            "in": "body",
-            "required": false,
             "schema": {
-              "type": "object",
-              "properties": {
-                "reason": {
-                  "type": "string",
-                  "description": "Rejection reason"
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
                 }
               }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
-            "description": "Application rejected successfully"
+            "description": "Diary application rejected successfully"
           },
           "400": {
             "description": "Application is not pending"
@@ -647,160 +693,77 @@
         }
       }
     },
-    "/announcements": {
-      "get": {
-        "tags": ["Announcements"],
-        "summary": "Get announcements",
-        "description": "Returns all announcements",
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Announcements"
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": ["Announcements"],
-        "summary": "Create announcement",
-        "description": "Creates a new announcement",
-        "parameters": [
-          {
-            "name": "announcement",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/Announcements"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Announcement created successfully",
-            "schema": {
-              "$ref": "#/definitions/Announcements"
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          }
-        }
-      }
-    },
-    "/announcements/{id}": {
-      "get": {
-        "tags": ["Announcements"],
-        "summary": "Get announcement",
-        "description": "Returns a specific announcement by ID",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Announcement ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/Announcements"
-            }
-          },
-          "404": {
-            "description": "Announcement not found"
-          }
-        }
-      },
-      "put": {
-        "tags": ["Announcements"],
-        "summary": "Update announcement",
-        "description": "Updates an existing announcement",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Announcement ID"
-          },
-          {
-            "name": "announcement",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/Announcements"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Announcement updated successfully",
-            "schema": {
-              "$ref": "#/definitions/Announcements"
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "404": {
-            "description": "Announcement not found"
-          }
-        }
-      }
-    },
     "/diary": {
       "get": {
-        "tags": ["Diary Tasks"],
-        "summary": "Get diary tasks",
-        "description": "Returns all diary tasks, can be filtered by content",
+        "tags": [
+          "diary"
+        ],
+        "summary": "Get all diary entries",
+        "description": "Returns a list of all diary entries with optional content filter",
         "parameters": [
           {
             "name": "content",
             "in": "query",
+            "description": "Filter entries containing specified text in shorthand",
             "required": false,
-            "type": "string",
-            "description": "Filter tasks by diary shorthand content"
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/DiaryTask"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiaryTask"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "54fdf8b8dbbe4ff5b089b7aea871f48f",
+                    "diary_name": "Theatre of Blood: 5 Man",
+                    "diary_shorthand": "tob5",
+                    "boss_name": "tob",
+                    "scale": "5",
+                    "diary_description": null,
+                    "diary_time": "0:14:15.0",
+                    "diary_points": 175
+                  }
+                ]
               }
             }
           }
         }
       },
       "post": {
-        "tags": ["Diary Tasks"],
-        "summary": "Create diary task",
+        "tags": [
+          "diary"
+        ],
+        "summary": "Create a new diary task",
         "description": "Creates a new diary task",
-        "parameters": [
-          {
-            "name": "task",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/DiaryTask"
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDiaryTask"
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "200": {
-            "description": "Diary task created successfully",
-            "schema": {
-              "$ref": "#/definitions/DiaryTask"
+          "201": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTask"
+                }
+              }
             }
           },
           "400": {
@@ -809,82 +772,186 @@
         }
       }
     },
+    "/diary/shorthands": {
+      "get": {
+        "tags": [
+          "diary"
+        ],
+        "summary": "Get all unique diary shorthands",
+        "description": "Returns a list of all unique diary shorthands",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "tob5",
+                  "tob2",
+                  "cm3",
+                  "cg",
+                  "hmt4",
+                  "hmt5",
+                  "quiver",
+                  "cm1"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diary/categories": {
+      "get": {
+        "tags": [
+          "diary"
+        ],
+        "summary": "Get all diary categories",
+        "description": "Returns all unique diary tasks organized by shorthand",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "diary_name": {
+                        "type": "string"
+                      },
+                      "shorthand": {
+                        "type": "string"
+                      },
+                      "scale": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "diary_name": "Theatre of Blood: 5 Man",
+                    "shorthand": "tob5",
+                    "scale": "5"
+                  },
+                  {
+                    "diary_name": "Gauntlet Cape",
+                    "shorthand": "cg",
+                    "scale": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/diary/{id}": {
       "get": {
-        "tags": ["Diary Tasks"],
-        "summary": "Get diary task",
-        "description": "Returns a specific diary task by ID",
+        "tags": [
+          "diary"
+        ],
+        "summary": "Get diary task by ID",
+        "description": "Returns a single diary task",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the diary task to return",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Diary task ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
-            "schema": {
-              "$ref": "#/definitions/DiaryTask"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTask"
+                }
+              }
             }
           },
           "404": {
-            "description": "Diary task not found"
+            "description": "Task not found"
           }
         }
       },
       "put": {
-        "tags": ["Diary Tasks"],
-        "summary": "Update diary task",
+        "tags": [
+          "diary"
+        ],
+        "summary": "Update a diary task",
         "description": "Updates an existing diary task",
         "parameters": [
           {
             "name": "id",
             "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Diary task ID"
-          },
-          {
-            "name": "task",
-            "in": "body",
+            "description": "ID of the diary task to update",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/DiaryTask"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDiaryTask"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Diary task updated successfully",
-            "schema": {
-              "$ref": "#/definitions/DiaryTask"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTask"
+                }
+              }
             }
           },
           "400": {
             "description": "Invalid input"
           },
           "404": {
-            "description": "Diary task not found"
+            "description": "Task not found"
           }
         }
       },
       "delete": {
-        "tags": ["Diary Tasks"],
-        "summary": "Delete diary task",
-        "description": "Deletes a diary task",
+        "tags": [
+          "diary"
+        ],
+        "summary": "Delete a diary task",
+        "description": "Deletes an existing diary task",
         "parameters": [
           {
             "name": "id",
             "in": "path",
+            "description": "ID of the diary task to delete",
             "required": true,
-            "type": "string",
-            "format": "uuid",
-            "description": "Diary task ID"
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -892,90 +959,268 @@
             "description": "Diary task deleted successfully"
           },
           "404": {
-            "description": "Diary task not found"
-          }
-        }
-      }
-    },
-    "/diary/shorthands": {
-      "get": {
-        "tags": ["Diary Tasks"],
-        "summary": "Get diary shorthands",
-        "description": "Returns all unique diary shorthands",
-        "responses": {
-          "200": {
-            "description": "Successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            "description": "Task not found"
           }
         }
       }
     },
     "/splits": {
       "get": {
-        "tags": ["Splits"],
-        "summary": "Get splits",
-        "description": "Returns all splits, can be filtered by date range",
+        "tags": [
+          "splits"
+        ],
+        "summary": "Get all splits",
+        "description": "Returns a list of all splits",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Split"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "splits"
+        ],
+        "summary": "Create a new split",
+        "description": "Creates a new split in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSplit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Split created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/splits/{splitId}": {
+      "get": {
+        "tags": [
+          "splits"
+        ],
+        "summary": "Get split by ID",
+        "description": "Returns a single split",
         "parameters": [
           {
-            "name": "begin_date",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date",
-            "description": "Filter splits from this date (format: YYYY-MM-DD)"
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date",
-            "description": "Filter splits until this date (format: YYYY-MM-DD)"
+            "name": "splitId",
+            "in": "path",
+            "description": "ID of the split to return",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Split not found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "splits"
+        ],
+        "summary": "Update split",
+        "description": "Updates an existing split",
+        "parameters": [
+          {
+            "name": "splitId",
+            "in": "path",
+            "description": "ID of the split to update",
+            "required": true,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Splits"
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSplit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Split updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
               }
             }
           },
           "400": {
-            "description": "Invalid date format"
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Split not found"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get all users",
+        "description": "Returns a list of all users",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "5cc4fd1bbd3945a298410b647ae6080e",
+                    "discord_id": "12345",
+                    "runescape_name": "TestUser",
+                    "previous_names": [
+                      "UserTester",
+                      "TesterUser"
+                    ],
+                    "is_member": true,
+                    "rank": "Quester",
+                    "rank_points": 0,
+                    "progression_data": null,
+                    "achievements": null,
+                    "join_date": "2025-03-28T11:23:59.642101",
+                    "timestamp": "2025-03-28T11:22:00.718276",
+                    "is_active": true
+                  },
+                  {
+                    "id": "1c715e03328043c9a8aa4e3c55db112c",
+                    "discord_id": "54321",
+                    "runescape_name": "Funzip",
+                    "previous_names": null,
+                    "is_member": true,
+                    "rank": "Trialist",
+                    "rank_points": 375,
+                    "progression_data": {},
+                    "achievements": [
+                      "Infernal Cape",
+                      "Grandmaster Combat Achiever"
+                    ],
+                    "join_date": "2024-03-29T01:03:22.101679",
+                    "timestamp": "2025-03-29T01:01:45.054974",
+                    "is_active": true
+                  }
+                ]
+              }
+            }
           }
         }
       },
       "post": {
-        "tags": ["Splits"],
-        "summary": "Create split",
-        "description": "Records a new split contribution and awards points to the user",
+        "tags": [
+          "users"
+        ],
+        "summary": "Create a new user",
+        "description": "Creates a new user in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get user by ID",
+        "description": "Returns a single user",
         "parameters": [
           {
-            "name": "split",
-            "in": "body",
+            "name": "userId",
+            "in": "path",
+            "description": "ID of the user to return",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/Splits"
+              "type": "integer"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Split created successfully",
-            "schema": {
-              "$ref": "#/definitions/Splits"
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
             }
-          },
-          "400": {
-            "description": "Invalid input"
           },
           "404": {
             "description": "User not found"
@@ -984,237 +1229,440 @@
       }
     }
   },
-  "definitions": {
-    "User": {
-      "type": "object",
-      "properties": {
-        "discord_id": {
-          "type": "string"
-        },
-        "runescape_name": {
-          "type": "string"
-        },
-        "previous_names": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "is_member": {
-          "type": "boolean"
-        },
-        "rank": {
-          "type": "string"
-        },
-        "rank_points": {
-          "type": "integer"
-        },
-        "progression_data": {
-          "type": "object"
-        },
-        "achievements": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "join_date": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "is_active": {
-          "type": "boolean"
-        }
-      }
-    },
-    "Split": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "integer"
-        },
-        "user_id": {
-          "type": "string"
-        },
-        "split_contribution": {
-          "type": "number",
-          "format": "float"
-        },
-        "split_source": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "DiaryApplication": {
-      "type": "object",
-      "properties": {
-        "user_id": {
-          "type": "string",
-          "description": "Discord ID of the user submitting the application"
-        },
-        "diary_shorthand": {
-          "type": "string"
-        },
-        "time_split": {
-          "type": "string",
-          "description": "Time format: MM:SS.s or HH:MM:SS.s"
-        },
-        "party": {
-          "type": "array",
-          "items": {
-            "type": "string"
+  "components": {
+    "schemas": {
+      "Announcement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c97e76d1-60be-4f48-ac6a-26dc79a7f22e"
           },
-          "description": "Array of RuneScape names of party members"
-        },
-        "proof": {
-          "type": "string",
-          "description": "Link to proof of completion"
+          "author_id": {
+            "type": "string",
+            "example": "88087113626587136"
+          },
+          "message": {
+            "type": "string",
+            "example": "Howdy fellas"
+          },
+          "is_pinned": {
+            "type": "boolean",
+            "example": false
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Sun, 30 Mar 2025 22:11:09 GMT"
+          }
         }
       },
-      "required": ["user_id", "diary_shorthand"]
-    },
-    "DiaryTask": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "integer"
-        },
-        "diary_shorthand": {
-          "type": "string"
-        },
-        "diary_name": {
-          "type": "string"
-        },
-        "diary_description": {
-          "type": "string"
-        },
-        "diary_time": {
-          "type": "string"
-        },
-        "scale": {
-          "type": "string"
+      "NewAnnouncement": {
+        "type": "object",
+        "required": [
+          "author_id",
+          "message"
+        ],
+        "properties": {
+          "author_id": {
+            "type": "string",
+            "example": "88087113626587136"
+          },
+          "message": {
+            "type": "string",
+            "example": "Howdy fellas"
+          },
+          "is_pinned": {
+            "type": "boolean",
+            "default": false,
+            "example": false
+          }
         }
-      }
-    },
-    "ClanApplications": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "user_id": {
-          "type": "string"
-        },
-        "runescape_name": {
-          "type": "string"
-        },
-        "referral": {
-          "type": "string"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "goals": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string",
-          "enum": ["Pending", "Accepted", "Rejected"]
-        },
-        "verdict_reason": {
-          "type": "string"
-        },
-        "verdict_timestamp": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
+      },
+      "Application": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6844f93f-f605-4ac8-9a60-59cc3545f1a3"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          },
+          "runescape_name": {
+            "type": "string",
+            "example": "TestUser"
+          },
+          "referral": {
+            "type": "string",
+            "example": "Friend"
+          },
+          "reason": {
+            "type": "string",
+            "example": "I want to join"
+          },
+          "goals": {
+            "type": "string",
+            "example": "Improve my skills"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Accepted",
+              "Rejected"
+            ],
+            "example": "Accepted"
+          },
+          "verdict_reason": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "verdict_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Fri, 28 Mar 2025 11:23:59 GMT"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Fri, 28 Mar 2025 11:22:00 GMT"
+          }
         }
-      }
-    },
-    "DiaryApplications": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "user_id": {
-          "type": "string"
-        },
-        "diary_shorthand": {
-          "type": "string"
-        },
-        "time_split": {
-          "type": "string"
-        },
-        "party": {
-          "type": "array",
-          "items": {
+      },
+      "NewApplication": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "runescape_name"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          },
+          "runescape_name": {
+            "type": "string",
+            "example": "TestUser"
+          },
+          "referral": {
+            "type": "string",
+            "example": "Friend"
+          },
+          "reason": {
+            "type": "string",
+            "example": "I want to join"
+          },
+          "goals": {
+            "type": "string",
+            "example": "Improve my skills"
+          }
+        }
+      },
+      "DiaryApplication": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "runescape_name": {
+            "type": "string"
+          },
+          "diary_name": {
+            "type": "string"
+          },
+          "diary_shorthand": {
+            "type": "string"
+          },
+          "party": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "party_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time_split": {
+            "type": "string"
+          },
+          "proof": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Accepted",
+              "Rejected"
+            ]
+          },
+          "target_diary_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "verdict_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NewDiaryApplication": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "diary_shorthand"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "diary_shorthand": {
+            "type": "string"
+          },
+          "party": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time_split": {
+            "type": "string"
+          },
+          "proof": {
             "type": "string"
           }
-        },
-        "proof": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string",
-          "enum": ["Pending", "Approved", "Rejected"]
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
         }
-      }
-    },
-    "Announcements": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "author_id": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "is_pinned": {
-          "type": "boolean"
+      },
+      "DiaryTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "54fdf8b8dbbe4ff5b089b7aea871f48f"
+          },
+          "diary_name": {
+            "type": "string",
+            "example": "Theatre of Blood: 5 Man"
+          },
+          "diary_shorthand": {
+            "type": "string",
+            "example": "tob5"
+          },
+          "boss_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "tob"
+          },
+          "scale": {
+            "type": "string",
+            "nullable": true,
+            "example": "5"
+          },
+          "diary_description": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "diary_time": {
+            "type": "string",
+            "nullable": true,
+            "example": "0:14:15.0"
+          },
+          "diary_points": {
+            "type": "integer",
+            "example": 175
+          }
         }
-      }
-    },
-    "Splits": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "integer"
-        },
-        "user_id": {
-          "type": "string"
-        },
-        "split_contribution": {
-          "type": "number",
-          "format": "float"
-        },
-        "split_source": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
+      },
+      "NewDiaryTask": {
+        "type": "object",
+        "required": [
+          "diary_name",
+          "diary_points"
+        ],
+        "properties": {
+          "diary_name": {
+            "type": "string",
+            "example": "Theatre of Blood: 5 Man"
+          },
+          "diary_shorthand": {
+            "type": "string",
+            "example": "tob5"
+          },
+          "boss_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "tob"
+          },
+          "scale": {
+            "type": "string",
+            "nullable": true,
+            "example": "5"
+          },
+          "diary_description": {
+            "type": "string",
+            "nullable": true
+          },
+          "diary_time": {
+            "type": "string",
+            "nullable": true,
+            "example": "0:14:15.0"
+          },
+          "diary_points": {
+            "type": "integer",
+            "example": 175
+          }
+        }
+      },
+      "Split": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "d3e2b853-7362-4c22-b6f0-c6ec48070b4e"
+          },
+          "group_size": {
+            "type": "integer",
+            "example": 4
+          },
+          "item_name": {
+            "type": "string",
+            "example": "Rare Item"
+          },
+          "item_price": {
+            "type": "string",
+            "example": "1000000"
+          },
+          "screenshot_link": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://example.com/screenshot.jpg"
+          },
+          "split_contribution": {
+            "type": "string",
+            "example": "750000.0"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Fri, 28 Mar 2025 11:22:00 GMT"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          }
+        }
+      },
+      "NewSplit": {
+        "type": "object",
+        "required": [
+          "group_size",
+          "item_name",
+          "item_price",
+          "screenshot_link",
+          "user_id"
+        ],
+        "properties": {
+          "group_size": {
+            "type": "integer",
+            "example": 4
+          },
+          "item_name": {
+            "type": "string",
+            "example": "Rare Item"
+          },
+          "item_price": {
+            "type": "string",
+            "example": "1000000"
+          },
+          "screenshot_link": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://example.com/screenshot.jpg"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "discord_id": {
+            "type": "string"
+          },
+          "runescape_name": {
+            "type": "string"
+          },
+          "previous_names": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_member": {
+            "type": "boolean"
+          },
+          "rank": {
+            "type": "string"
+          },
+          "rank_points": {
+            "type": "integer"
+          },
+          "progression_data": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "achievements": {
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "join_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
         }
       }
     }

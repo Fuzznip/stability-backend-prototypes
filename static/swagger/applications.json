@@ -1,0 +1,632 @@
+{
+  "paths": {
+    "/applications": {
+      "get": {
+        "tags": ["applications"],
+        "summary": "Get all applications",
+        "description": "Returns a list of all clan applications with optional filtering",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filter by application status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["Pending", "Accepted", "Rejected"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Application"
+                  }
+                },
+                "example": [
+                  {
+                    "goals": "Improve my skills",
+                    "id": "6844f93f-f605-4ac8-9a60-59cc3545f1a3",
+                    "reason": "I want to join",
+                    "referral": "Friend",
+                    "runescape_name": "TestUser",
+                    "status": "Accepted",
+                    "timestamp": "Fri, 28 Mar 2025 11:22:00 GMT",
+                    "user_id": "12345",
+                    "verdict_reason": null,
+                    "verdict_timestamp": "Fri, 28 Mar 2025 11:23:59 GMT"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["applications"],
+        "summary": "Create a new application",
+        "description": "Creates a new clan application",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewApplication"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Application status updated to pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Application created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or application issues"
+          }
+        }
+      }
+    },
+    "/applications/{id}": {
+      "get": {
+        "tags": ["applications"],
+        "summary": "Get application by ID",
+        "description": "Returns a single application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the application to return",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["applications"],
+        "summary": "Update application",
+        "description": "Updates an existing application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the application to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewApplication"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Application updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["applications"],
+        "summary": "Delete application",
+        "description": "Deletes an application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the application to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application deleted successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/{id}/accept": {
+      "put": {
+        "tags": ["applications"],
+        "summary": "Accept application",
+        "description": "Accepts an application and updates user status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the application to accept",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application accepted successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/{id}/reject": {
+      "put": {
+        "tags": ["applications"],
+        "summary": "Reject application",
+        "description": "Rejects an application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the application to reject",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Application rejected successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/diary": {
+      "get": {
+        "tags": ["diary applications"],
+        "summary": "Get all diary applications",
+        "description": "Returns a list of all diary applications with optional filtering",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filter by application status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["Pending", "Accepted", "Rejected"]
+            }
+          },
+          {
+            "name": "discord_id",
+            "in": "query",
+            "description": "Filter by discord ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiaryApplication"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["diary applications"],
+        "summary": "Create a new diary application",
+        "description": "Creates a new diary application",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDiaryApplication"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Diary application created successfully"
+          },
+          "400": {
+            "description": "Invalid input or application issues"
+          },
+          "404": {
+            "description": "User or diary not found"
+          }
+        }
+      }
+    },
+    "/applications/diary/{id}": {
+      "get": {
+        "tags": ["diary applications"],
+        "summary": "Get diary application by ID",
+        "description": "Returns a single diary application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the diary application to return",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryApplication"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/diary/{id}/accept": {
+      "put": {
+        "tags": ["diary applications"],
+        "summary": "Accept diary application",
+        "description": "Accepts a diary application and updates user progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the diary application to accept",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diary application accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "successful": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "failed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Application is not pending"
+          },
+          "404": {
+            "description": "Application or diary not found"
+          }
+        }
+      }
+    },
+    "/applications/diary/{id}/reject": {
+      "put": {
+        "tags": ["diary applications"],
+        "summary": "Reject diary application",
+        "description": "Rejects a diary application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the diary application to reject",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Diary application rejected successfully"
+          },
+          "400": {
+            "description": "Application is not pending"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Application": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6844f93f-f605-4ac8-9a60-59cc3545f1a3"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          },
+          "runescape_name": {
+            "type": "string",
+            "example": "TestUser"
+          },
+          "referral": {
+            "type": "string",
+            "example": "Friend"
+          },
+          "reason": {
+            "type": "string",
+            "example": "I want to join"
+          },
+          "goals": {
+            "type": "string",
+            "example": "Improve my skills"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Pending", "Accepted", "Rejected"],
+            "example": "Accepted"
+          },
+          "verdict_reason": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "verdict_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Fri, 28 Mar 2025 11:23:59 GMT"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Fri, 28 Mar 2025 11:22:00 GMT"
+          }
+        }
+      },
+      "NewApplication": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "runescape_name"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          },
+          "runescape_name": {
+            "type": "string",
+            "example": "TestUser"
+          },
+          "referral": {
+            "type": "string",
+            "example": "Friend"
+          },
+          "reason": {
+            "type": "string",
+            "example": "I want to join"
+          },
+          "goals": {
+            "type": "string",
+            "example": "Improve my skills"
+          }
+        }
+      },
+      "DiaryApplication": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "runescape_name": {
+            "type": "string"
+          },
+          "diary_name": {
+            "type": "string"
+          },
+          "diary_shorthand": {
+            "type": "string"
+          },
+          "party": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "party_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time_split": {
+            "type": "string"
+          },
+          "proof": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Pending", "Accepted", "Rejected"]
+          },
+          "target_diary_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "verdict_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NewDiaryApplication": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "diary_shorthand"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "diary_shorthand": {
+            "type": "string"
+          },
+          "party": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time_split": {
+            "type": "string"
+          },
+          "proof": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
