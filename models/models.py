@@ -21,6 +21,7 @@ class Users(db.Model, Serializer):
     diary_points = db.Column(db.Integer, default=0)
     event_points = db.Column(db.Integer, default=0)
     time_points = db.Column(db.Integer, default=0)
+    split_points = db.Column(db.Integer, default=0)
 
     def serialize(self):
         return Serializer.serialize(self)
