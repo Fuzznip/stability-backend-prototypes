@@ -179,7 +179,7 @@ class DiaryTasks(db.Model, Serializer):
 class DiaryApplications(db.Model, Serializer):
     __tablename__ = 'diary_applications'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
     runescape_name = db.Column(db.String, nullable=False)
     diary_name = db.Column(db.String, nullable=False)
     diary_shorthand = db.Column(db.String, nullable=False)
