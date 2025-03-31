@@ -18,6 +18,9 @@ class Users(db.Model, Serializer):
     join_date = db.Column(db.DateTime)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
     is_active = db.Column(db.Boolean, default=True)
+    diary_points = db.Column(db.Integer, default=0)
+    event_points = db.Column(db.Integer, default=0)
+    time_points = db.Column(db.Integer, default=0)
 
     def serialize(self):
         return Serializer.serialize(self)
