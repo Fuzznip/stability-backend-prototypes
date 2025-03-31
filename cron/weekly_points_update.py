@@ -44,7 +44,7 @@ def update_weekly_points():
                 
                 if days_since_join % 7 == 0:
                     logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
-                count += 1
+                    count += 1
     
     db.session.commit()
     logging.info(f"Added weekly points to {count} users")
