@@ -48,7 +48,7 @@ def update_weekly_points():
                         logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
                         count += 1
 
-                    user.rank_points = user.time_points + user.diary_points + user.event_points
+                    user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
         
         db.session.commit()
         logging.info(f"Added weekly points to {count} users")
