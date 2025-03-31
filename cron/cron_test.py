@@ -10,12 +10,17 @@ from models.models import Users, ClanPointsLog
 from datetime import datetime
 import logging
 
+# Create logs directory if it doesn't exist
+logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("logs/weekly_points.log")
+        logging.FileHandler(os.path.join(logs_dir, "weekly_points.log"))
     ]
 )
 
