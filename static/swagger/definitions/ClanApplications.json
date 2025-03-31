@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "user_id": { "type": "string" },
+    "runescape_name": { "type": "string" },
+    "referral": { "type": "string" },
+    "reason": { "type": "string" },
+    "goals": { "type": "string" },
+    "submission_date": { "type": "string" },
+    "status": { "type": "string" }
+  }
+}

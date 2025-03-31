@@ -1,0 +1,132 @@
+{
+  "applications": {
+    "get": {
+      "summary": "Get all applications",
+      "description": "Retrieve all clan applications.",
+      "parameters": [
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "description": "Filter applications by status"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response"
+        }
+      }
+    },
+    "post": {
+      "summary": "Create a new application",
+      "description": "Add a new clan application to the system.",
+      "responses": {
+        "201": {
+          "description": "Application created successfully"
+        }
+      }
+    }
+  },
+  "applications_by_id": {
+    "get": {
+      "summary": "Get application",
+      "description": "Retrieve a clan application by its ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "ID of the application"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "schema": { "$ref": "../definitions/ClanApplications.json" }
+        },
+        "404": {
+          "description": "Application not found"
+        }
+      }
+    },
+    "put": {
+      "summary": "Update application",
+      "description": "Update a clan application by its ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "ID of the application"
+        },
+        {
+          "name": "body",
+          "in": "body",
+          "required": true,
+          "schema": { "$ref": "../definitions/ClanApplications.json" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Application updated successfully",
+          "schema": { "$ref": "../definitions/ClanApplications.json" }
+        },
+        "400": {
+          "description": "Invalid input"
+        },
+        "404": {
+          "description": "Application not found"
+        }
+      }
+    }
+  },
+  "applications_accept": {
+    "put": {
+      "summary": "Accept application",
+      "description": "Accept a clan application by its ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "ID of the application"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Application accepted successfully"
+        },
+        "404": {
+          "description": "Application not found"
+        }
+      }
+    }
+  },
+  "applications_reject": {
+    "put": {
+      "summary": "Reject application",
+      "description": "Reject a clan application by its ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "ID of the application"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Application rejected successfully"
+        },
+        "404": {
+          "description": "Application not found"
+        }
+      }
+    }
+  }
+}

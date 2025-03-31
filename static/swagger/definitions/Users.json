@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "discord_id": { "type": "string" },
+    "runescape_name": { "type": "string" },
+    "previous_names": { "type": "array", "items": { "type": "string" } },
+    "is_member": { "type": "boolean" },
+    "rank": { "type": "string" },
+    "rank_points": { "type": "integer" },
+    "progression_data": { "type": "object" },
+    "join_date": { "type": "string" }
+  }
+}

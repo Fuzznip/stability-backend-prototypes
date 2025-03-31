@@ -1,0 +1,22 @@
+{
+  "announcements": {
+    "get": {
+      "summary": "Get announcements",
+      "description": "Retrieve all announcements.",
+      "responses": {
+        "200": {
+          "description": "Successful response"
+        }
+      }
+    },
+    "post": {
+      "summary": "Create an announcement",
+      "description": "Add a new announcement.",
+      "responses": {
+        "201": {
+          "description": "Announcement created successfully"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "users": {
+    "get": {
+      "summary": "Get all users",
+      "description": "Retrieve all users.",
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "schema": {
+            "type": "array",
+            "items": { "$ref": "../definitions/Users.json" }
+          }
+        }
+      }
+    },
+    "post": {
+      "summary": "Create a new user",
+      "description": "Add a new user to the system.",
+      "parameters": [
+        {
+          "name": "body",
+          "in": "body",
+          "required": true,
+          "schema": { "$ref": "../definitions/Users.json" },
+          "description": "The user object to create"
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "User created successfully",
+          "schema": { "$ref": "../definitions/Users.json" }
+        },
+        "400": {
+          "description": "Invalid input or user already exists"
+        }
+      }
+    }
+  },
+  "users_by_id": {
+    "get": {
+      "summary": "Get user profile",
+      "description": "Retrieve a user's profile by their Discord ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "Discord ID of the user"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "schema": { "$ref": "../definitions/Users.json" }
+        },
+        "404": {
+          "description": "User not found"
+        }
+      }
+    },
+    "put": {
+      "summary": "Update user profile",
+      "description": "Update a user's profile by their Discord ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "Discord ID of the user"
+        },
+        {
+          "name": "body",
+          "in": "body",
+          "required": true,
+          "schema": { "$ref": "../definitions/Users.json" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "User updated successfully",
+          "schema": { "$ref": "../definitions/Users.json" }
+        },
+        "400": {
+          "description": "Invalid input"
+        },
+        "404": {
+          "description": "User not found"
+        }
+      }
+    },
+    "delete": {
+      "summary": "Delete user",
+      "description": "Delete a user by their Discord ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "Discord ID of the user"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "User deleted successfully"
+        },
+        "404": {
+          "description": "User not found"
+        }
+      }
+    }
+  },
+  "users_splits": {
+    "get": {
+      "summary": "Get user splits",
+      "description": "Retrieve all splits associated with a user by their Discord ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "Discord ID of the user"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "schema": {
+            "type": "array",
+            "items": { "$ref": "../definitions/Splits.json" }
+          }
+        },
+        "404": {
+          "description": "User not found"
+        }
+      }
+    }
+  },
+  "users_splits_total": {
+    "get": {
+      "summary": "Get total user splits",
+      "description": "Retrieve the total split contribution for a user by their Discord ID.",
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string",
+          "description": "Discord ID of the user"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Successful response",
+          "schema": { "type": "string" }
+        },
+        "404": {
+          "description": "User not found"
+        }
+      }
+    }
+  }
+}

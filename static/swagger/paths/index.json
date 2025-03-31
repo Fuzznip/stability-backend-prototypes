@@ -1,0 +1,38 @@
+{
+  "/leaderboard": {
+    "$ref": "./leaderboard.json#/leaderboard"
+  },
+  "/users": {
+    "$ref": "./users.json#/users"
+  },
+  "/users/{id}": {
+    "$ref": "./users.json#/users_by_id"
+  },
+  "/users/{id}/splits": {
+    "$ref": "./users.json#/users_splits"
+  },
+  "/users/{id}/splits/total": {
+    "$ref": "./users.json#/users_splits_total"
+  },
+  "/announcements": {
+    "$ref": "./announcements.json#/announcements"
+  },
+  "/webhooks": {
+    "$ref": "./webhooks.json#/webhooks"
+  },
+  "/splits": {
+    "$ref": "./splits.json#/splits"
+  },
+  "/applications": {
+    "$ref": "./applications.json#/applications"
+  },
+  "/applications/{id}": {
+    "$ref": "./applications.json#/applications_by_id"
+  },
+  "/applications/{id}/accept": {
+    "$ref": "./applications.json#/applications_accept"
+  },
+  "/applications/{id}/reject": {
+    "$ref": "./applications.json#/applications_reject"
+  }
+}

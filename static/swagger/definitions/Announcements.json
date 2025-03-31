@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "author_id": { "type": "string" },
+    "message": { "type": "string" },
+    "is_pinned": { "type": "boolean" }
+  }
+}
