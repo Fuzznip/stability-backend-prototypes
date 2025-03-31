@@ -1,3 +1,10 @@
+import sys
+import os
+
+# Add the project root directory to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
 from app import db
 from models.models import Users, ClanPointsLog
 from datetime import datetime
@@ -23,3 +30,13 @@ def cron_test():
     
     logging.info("Cron test completed successfully")
     return "Cron test completed successfully"
+
+if __name__ == "__main__":
+    try:
+        message = cron_test()
+        print(message)
+        exit(0)
+    except Exception as e:
+        logging.error(f"Error in cron test: {str(e)}", exc_info=True)
+        print(f"Cron test failed: {str(e)}")
+        exit(1)
