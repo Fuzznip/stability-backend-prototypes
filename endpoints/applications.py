@@ -310,8 +310,7 @@ def accept_application_diary(id):
                     points_difference = target_diary.diary_points - current_diary.diary_points
                 else:
                     points_difference = 0
-                    logging.warning("Could not find current diary for id: " + current_diary_progress.diary_id)
-                
+                    logging.warning("Could not find current diary for id: " + str(current_diary_progress.diary_id))
                 # Add points to the user
                 points = ClanPointsLog()
                 points.user_id = user.discord_id
