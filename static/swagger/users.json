@@ -1,0 +1,170 @@
+{
+  "paths": {
+    "/users": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Get all users",
+        "description": "Returns a list of all users",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "5cc4fd1bbd3945a298410b647ae6080e",
+                    "discord_id": "12345",
+                    "runescape_name": "TestUser",
+                    "previous_names": ["UserTester", "TesterUser"],
+                    "is_member": true,
+                    "rank": "Quester",
+                    "rank_points": 0,
+                    "progression_data": null,
+                    "achievements": null,
+                    "join_date": "2025-03-28T11:23:59.642101",
+                    "timestamp": "2025-03-28T11:22:00.718276",
+                    "is_active": true
+                  },
+                  {
+                    "id": "1c715e03328043c9a8aa4e3c55db112c",
+                    "discord_id": "54321",
+                    "runescape_name": "Funzip",
+                    "previous_names": null,
+                    "is_member": true,
+                    "rank": "Trialist",
+                    "rank_points": 375,
+                    "progression_data": {},
+                    "achievements": ["Infernal Cape", "Grandmaster Combat Achiever"],
+                    "join_date": "2024-03-29T01:03:22.101679",
+                    "timestamp": "2025-03-29T01:01:45.054974",
+                    "is_active": true
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["users"],
+        "summary": "Create a new user",
+        "description": "Creates a new user in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Get user by ID",
+        "description": "Returns a single user",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "ID of the user to return",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "discord_id": {
+            "type": "string"
+          },
+          "runescape_name": {
+            "type": "string"
+          },
+          "previous_names": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_member": {
+            "type": "boolean"
+          },
+          "rank": {
+            "type": "string"
+          },
+          "rank_points": {
+            "type": "integer"
+          },
+          "progression_data": {
+            "type": ["object", "null"]
+          },
+          "achievements": {
+            "type": ["array", "null"]
+          },
+          "join_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

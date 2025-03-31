@@ -1,0 +1,338 @@
+{
+  "paths": {
+    "/diary": {
+      "get": {
+        "tags": ["diary"],
+        "summary": "Get all diary entries",
+        "description": "Returns a list of all diary entries with optional content filter",
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "description": "Filter entries containing specified text in shorthand",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiaryTask"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "54fdf8b8dbbe4ff5b089b7aea871f48f",
+                    "diary_name": "Theatre of Blood: 5 Man",
+                    "diary_shorthand": "tob5",
+                    "boss_name": "tob",
+                    "scale": "5",
+                    "diary_description": null,
+                    "diary_time": "0:14:15.0",
+                    "diary_points": 175
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["diary"],
+        "summary": "Create a new diary task",
+        "description": "Creates a new diary task",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDiaryTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or task already exists"
+          }
+        }
+      }
+    },
+    "/diary/shorthands": {
+      "get": {
+        "tags": ["diary"],
+        "summary": "Get all unique diary shorthands",
+        "description": "Returns a list of all unique diary shorthands",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": ["tob5", "tob2", "cm3", "cg", "hmt4", "hmt5", "quiver", "cm1"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diary/categories": {
+      "get": {
+        "tags": ["diary"],
+        "summary": "Get all diary categories",
+        "description": "Returns all unique diary tasks organized by shorthand",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "diary_name": {
+                        "type": "string"
+                      },
+                      "shorthand": {
+                        "type": "string"
+                      },
+                      "scale": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "diary_name": "Theatre of Blood: 5 Man",
+                    "shorthand": "tob5",
+                    "scale": "5"
+                  },
+                  {
+                    "diary_name": "Gauntlet Cape",
+                    "shorthand": "cg",
+                    "scale": null
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diary/{id}": {
+      "get": {
+        "tags": ["diary"],
+        "summary": "Get diary task by ID",
+        "description": "Returns a single diary task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the diary task to return",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTask"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["diary"],
+        "summary": "Update a diary task",
+        "description": "Updates an existing diary task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the diary task to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDiaryTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Diary task updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["diary"],
+        "summary": "Delete a diary task",
+        "description": "Deletes an existing diary task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the diary task to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diary task deleted successfully"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DiaryTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "54fdf8b8dbbe4ff5b089b7aea871f48f"
+          },
+          "diary_name": {
+            "type": "string",
+            "example": "Theatre of Blood: 5 Man"
+          },
+          "diary_shorthand": {
+            "type": "string",
+            "example": "tob5"
+          },
+          "boss_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "tob"
+          },
+          "scale": {
+            "type": "string",
+            "nullable": true,
+            "example": "5"
+          },
+          "diary_description": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "diary_time": {
+            "type": "string",
+            "nullable": true,
+            "example": "0:14:15.0"
+          },
+          "diary_points": {
+            "type": "integer",
+            "example": 175
+          }
+        }
+      },
+      "NewDiaryTask": {
+        "type": "object",
+        "required": [
+          "diary_name",
+          "diary_points"
+        ],
+        "properties": {
+          "diary_name": {
+            "type": "string",
+            "example": "Theatre of Blood: 5 Man"
+          },
+          "diary_shorthand": {
+            "type": "string",
+            "example": "tob5"
+          },
+          "boss_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "tob"
+          },
+          "scale": {
+            "type": "string",
+            "nullable": true,
+            "example": "5"
+          },
+          "diary_description": {
+            "type": "string",
+            "nullable": true
+          },
+          "diary_time": {
+            "type": "string",
+            "nullable": true,
+            "example": "0:14:15.0"
+          },
+          "diary_points": {
+            "type": "integer",
+            "example": 175
+          }
+        }
+      }
+    }
+  }
+}

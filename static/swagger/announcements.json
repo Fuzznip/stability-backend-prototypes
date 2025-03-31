@@ -1,0 +1,213 @@
+{
+  "paths": {
+    "/announcements": {
+      "get": {
+        "tags": ["announcements"],
+        "summary": "Get all announcements",
+        "description": "Returns a list of all announcements",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Announcement"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["announcements"],
+        "summary": "Create a new announcement",
+        "description": "Creates a new announcement in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAnnouncement"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Announcement created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announcement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/announcements/{announcementId}": {
+      "get": {
+        "tags": ["announcements"],
+        "summary": "Get announcement by ID",
+        "description": "Returns a single announcement",
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "ID of the announcement to return",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announcement"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["announcements"],
+        "summary": "Update announcement",
+        "description": "Updates an existing announcement",
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "ID of the announcement to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAnnouncement"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Announcement updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announcement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Announcement not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["announcements"],
+        "summary": "Delete announcement",
+        "description": "Deletes an announcement",
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "ID of the announcement to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Announcement deleted successfully"
+          },
+          "404": {
+            "description": "Announcement not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Announcement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c97e76d1-60be-4f48-ac6a-26dc79a7f22e"
+          },
+          "author_id": {
+            "type": "string",
+            "example": "88087113626587136"
+          },
+          "message": {
+            "type": "string",
+            "example": "Howdy fellas"
+          },
+          "is_pinned": {
+            "type": "boolean",
+            "example": false
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Sun, 30 Mar 2025 22:11:09 GMT"
+          }
+        }
+      },
+      "NewAnnouncement": {
+        "type": "object",
+        "required": [
+          "author_id",
+          "message"
+        ],
+        "properties": {
+          "author_id": {
+            "type": "string",
+            "example": "88087113626587136"
+          },
+          "message": {
+            "type": "string",
+            "example": "Howdy fellas"
+          },
+          "is_pinned": {
+            "type": "boolean",
+            "default": false,
+            "example": false
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,210 @@
+{
+  "paths": {
+    "/splits": {
+      "get": {
+        "tags": ["splits"],
+        "summary": "Get all splits",
+        "description": "Returns a list of all splits",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Split"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["splits"],
+        "summary": "Create a new split",
+        "description": "Creates a new split in the system",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSplit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Split created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/splits/{splitId}": {
+      "get": {
+        "tags": ["splits"],
+        "summary": "Get split by ID",
+        "description": "Returns a single split",
+        "parameters": [
+          {
+            "name": "splitId",
+            "in": "path",
+            "description": "ID of the split to return",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Split not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["splits"],
+        "summary": "Update split",
+        "description": "Updates an existing split",
+        "parameters": [
+          {
+            "name": "splitId",
+            "in": "path",
+            "description": "ID of the split to update",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSplit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Split updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Split not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Split": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "d3e2b853-7362-4c22-b6f0-c6ec48070b4e"
+          },
+          "group_size": {
+            "type": "integer",
+            "example": 4
+          },
+          "item_name": {
+            "type": "string",
+            "example": "Rare Item"
+          },
+          "item_price": {
+            "type": "string",
+            "example": "1000000"
+          },
+          "screenshot_link": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://example.com/screenshot.jpg"
+          },
+          "split_contribution": {
+            "type": "string",
+            "example": "750000.0"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "Fri, 28 Mar 2025 11:22:00 GMT"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          }
+        }
+      },
+      "NewSplit": {
+        "type": "object",
+        "required": [
+          "group_size",
+          "item_name",
+          "item_price",
+          "screenshot_link",
+          "user_id"
+        ],
+        "properties": {
+          "group_size": {
+            "type": "integer",
+            "example": 4
+          },
+          "item_name": {
+            "type": "string",
+            "example": "Rare Item"
+          },
+          "item_price": {
+            "type": "string",
+            "example": "1000000"
+          },
+          "screenshot_link": {
+            "type": "string",
+            "format": "uri",
+            "example": "http://example.com/screenshot.jpg"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "12345"
+          }
+        }
+      }
+    }
+  }
+}

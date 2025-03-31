@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask import Flask, render_template
 from dotenv import load_dotenv
 from flask_swagger_ui import get_swaggerui_blueprint
+from scripts.combine_swagger import combine_swagger_files
 
 load_dotenv()
 
@@ -18,6 +19,19 @@ app_context = app.app_context()
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+# Ensure swagger.json is generated at app startup
+project_root = os.path.dirname(os.path.abspath(__file__))
+swagger_input_dir = os.path.join(project_root, "static/swagger")
+swagger_output_file = os.path.join(project_root, "static/swagger.json")
+
+# Ensure the static directory exists
+if not os.path.exists(os.path.join(project_root, "static")):
+    os.makedirs(os.path.join(project_root, "static"))
+
+# Generate the combined swagger file
+combine_swagger_files(swagger_input_dir, swagger_output_file)
+
+# Configure Swagger UI
 SWAGGER_URL = '/docs'  # URL for exposing Swagger UI
 API_URL = '/static/swagger.json'  # Path to the Swagger JSON file
 

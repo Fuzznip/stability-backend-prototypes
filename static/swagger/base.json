@@ -1,0 +1,43 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Stability Backend API",
+    "description": "API for Stability Backend",
+    "version": "1.0.0",
+    "contact": {
+      "email": "admin@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "users",
+      "description": "User management operations"
+    },
+    {
+      "name": "announcements",
+      "description": "Announcement operations"
+    },
+    {
+      "name": "splits",
+      "description": "Split management operations"
+    },
+    {
+      "name": "applications",
+      "description": "Application management operations"
+    },
+    {
+      "name": "diary",
+      "description": "Diary tasks operations"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "schemas": {}
+  }
+}
