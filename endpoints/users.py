@@ -47,7 +47,7 @@ def create_user():
 def get_user_profile(id):
     user = Users.query.filter_by(discord_id=id).first()
     if user is None:
-        user = Users.query.filter_by(runescape_name=id).first()
+        user = Users.query.filter(Users.runescape_name.ilike(id)).first()
         if user is None:
             return "Could not find User", 404
     

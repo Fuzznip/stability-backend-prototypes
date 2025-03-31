@@ -94,7 +94,7 @@
             "description": "ID of the user to return",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "string"
             }
           }
         ],
