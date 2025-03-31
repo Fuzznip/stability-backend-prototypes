@@ -17,6 +17,7 @@ class Users(db.Model, Serializer):
     achievements = db.Column(ARRAY(db.String))
     join_date = db.Column(db.DateTime)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    is_active = db.Column(db.Boolean, default=True)
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -180,14 +181,43 @@ class DiaryApplications(db.Model, Serializer):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(db.String)
     runescape_name = db.Column(db.String, nullable=False)
-    diary_task = db.Column(db.String, nullable=False)
-    diary_scale = db.Column(db.String)
+    diary_name = db.Column(db.String, nullable=False)
+    diary_shorthand = db.Column(db.String, nullable=False)
+    party = db.Column(ARRAY(db.String))
+    party_ids = db.Column(ARRAY(db.String))
+    time_split = db.Column(db.String)
     proof = db.Column(db.String)
     status = db.Column(db.String, default='Pending')
+    target_diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id'), nullable=True)
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
 
     def serialize(self):
         return Serializer.serialize(self)
+    
+class DiaryCompletionLog(db.Model, Serializer):
+    __tablename__ = 'diary_log'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id'))
+    diary_category_shorthand = db.Column(db.String)
+    party = db.Column(ARRAY(db.String))
+    party_ids = db.Column(ARRAY(db.String))
+    proof = db.Column(db.String)
+    time_split = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
 
+    def serialize(self):
+        return Serializer.serialize(self)
+
+class ClanPointsLog(db.Model, Serializer):
+    __tablename__ = 'clan_points_log'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    points = db.Column(db.Numeric, nullable=False)
+    tag = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+
+    def serialize(self):
+        return Serializer.serialize(self)

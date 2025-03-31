@@ -1,7 +1,7 @@
 from app import app, db
 from helper.helpers import ModelEncoder
 from flask import request, jsonify
-from models.models import Splits, Users
+from models.models import Splits, Users, ClanPointsLog
 import json
 from datetime import datetime
 
@@ -15,6 +15,14 @@ def create_split():
         return "Could not find User", 404
     data.id = None
     data.split_contribution = (data.item_price / data.group_size) * (data.group_size - 1)
+
+    split_points = data.split_contribution * (10 / 4_000_000)
+    split_points = round(split_points, 2)
+    cpl = ClanPointsLog(user_id=data.user_id, points=split_points, tag="Split: {}".format(data.item_name))
+
+    user.rank_points += split_points
+
+    db.session.add(cpl)
     db.session.add(data)
     db.session.commit()
     return json.dumps(data.serialize(), cls=ModelEncoder)

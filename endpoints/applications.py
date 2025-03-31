@@ -1,7 +1,9 @@
 from app import app, db
 from helper.helpers import ModelEncoder
+from helper.time_utils import parse_time_to_seconds
 from flask import request
-from models.models import ClanApplications, Users, DiaryApplications
+from models.models import ClanApplications, Users
+from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
 import json, datetime
 
 @app.route("/applications", methods=['GET'])
@@ -25,14 +27,20 @@ def create_application():
     application = ClanApplications.query.filter_by(user_id=data.user_id).first()
     if application is not None:
         if application.status == "Pending":
-            return "Application already exists", 400
+            return "Application already exists and is pending", 400
         elif application.status == "Accepted":
             user = Users.query.filter_by(discord_id=data.user_id).first()
-            if user and user.is_member:
+            if user and user.is_member and user.is_active:
                 return "User is already a member", 400
+            else:
+                application.status = "Pending"
+                application.verdict_timestamp = None
+                application.verdict_reason = None
+                db.session.commit()
+                return "Application status updated to pending", 200
         elif application.status == "Rejected":
             if (datetime.datetime.now() - application.verdict_timestamp).days < 30:
-                return "User has been rejected", 400
+                return "User has been rejected less than 30 days ago", 400
 
     data.id = None
     db.session.add(data)
@@ -43,7 +51,7 @@ def create_application():
     user.rank = "Applicant"
     user.rank_points = 0
     user.is_member = False
-    user.join_date = None
+    user.is_active = True
     db.session.add(user)
 
     db.session.commit()
@@ -120,35 +128,150 @@ def reject_application(id):
 def get_applications_diary():
     params = request.args
     filter = params.get('filter')
+    discord_id = params.get('discord_id')
+    
     if filter is not None:
         applications = DiaryApplications.query.filter_by(status=filter).all()
+    elif discord_id is not None:
+        applications = DiaryApplications.query.filter_by(user_id=discord_id).all()
     else:
         applications = DiaryApplications.query.all()
+
     data = []
     for row in applications:
         data.append(row.serialize())
     return data
 
-@app.route("/applications/diary", methods=['POST'])
-def create_application_diary():
-    data = DiaryApplications(**request.get_json())
-    if data is None:
-        return "No JSON received", 400
-    application = DiaryApplications.query.filter_by(user_id=data.user_id).first()
-    if application is not None:
-        if application.status == "Pending":
-            return "Application already exists", 400
-        elif application.status == "Accepted":
-            user = Users.query.filter_by(discord_id=data.user_id).first()
-            if user and user.is_member:
-                return "User is already a member", 400
-        elif application.status == "Rejected":
-            if (datetime.datetime.now() - application.verdict_timestamp).days < 30:
-                return "User has been rejected", 400
+@app.route("/applications/diary/<id>", methods=['GET'])
+def get_application_diary(id):
+    application = DiaryApplications.query.filter_by(id=id).first()
+    if application is None:
+        return "Could not find Application", 404
+    return json.dumps(application.serialize(), cls=ModelEncoder)
 
-    data.id = None
-    db.session.add(data)
+@app.route("/applications/diary/<id>/accept", methods=['PUT'])
+def accept_application_diary(id):
+    application = DiaryApplications.query.filter_by(id=id).first()
+    if application is None:
+        return "Could not find Application", 404
+    
+    if application.status != "Pending":
+        return "Application is not pending", 400
+    
+    target_diary = DiaryTasks.query.filter_by(id=application.target_diary_id).first()
+    if target_diary is None:
+        return "Could not find Diary", 404
+    application.status = "Accepted"
+    application.verdict_timestamp = datetime.datetime.now()
+    
+    update_successful = []
+    update_failed = []
+
+    # Grab all of the users in the party
+    users = application.party_ids
+    if users is None or len(users) == 0:
+        users = [application.user_id]
+    
+    for i, user_id in enumerate(users):
+        user = Users.query.filter_by(discord_id=user_id).first()
+        if user is None:
+            update_failed.append(application.party[i])
+            continue
+
+        # Grab the latest diary progress for the user for this diary
+        current_diary_progress = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_category_shorthand=application.diary_shorthand).order_by(DiaryCompletionLog.timestamp.desc()).first()
+
+        if current_diary_progress is None:
+            new_diary_progress = DiaryCompletionLog()
+            new_diary_progress.user_id = user_id
+            new_diary_progress.diary_id = application.target_diary_id
+            new_diary_progress.diary_category_shorthand = target_diary.diary_shorthand
+            if application.party is not None:
+                new_diary_progress.party = application.party
+                new_diary_progress.party_ids = users
+            new_diary_progress.proof = application.proof
+            new_diary_progress.time_split = application.time_split
+            db.session.add(new_diary_progress)
+
+            # Add points to the user
+            points = ClanPointsLog()
+            points.user_id = user.discord_id
+            points.tag = application.diary_shorthand
+            points.points = target_diary.diary_points
+            points.timestamp = datetime.datetime.now()
+            db.session.add(points)
+
+            user.rank_points += target_diary.diary_points
+
+            update_successful.append(user_id)
+        else:
+            # Check to see if the application is faster than the current diary time
+            # and faster than the applied diary time
+            current_time_seconds = parse_time_to_seconds(current_diary_progress.time_split)
+            application_time_seconds = parse_time_to_seconds(application.time_split)
+            target_time_seconds = parse_time_to_seconds(target_diary.diary_time)
+            if current_time_seconds is None or application_time_seconds is None:
+                update_failed.append(user_id)
+                continue
+            if application_time_seconds < current_time_seconds and application_time_seconds < target_time_seconds:
+                new_diary_progress = DiaryCompletionLog()
+                new_diary_progress.user_id = user_id
+                new_diary_progress.diary_id = application.target_diary_id
+                new_diary_progress.diary_category_shorthand = target_diary.diary_shorthand
+                if application.party is not None:
+                    new_diary_progress.party = application.party
+                    new_diary_progress.party_ids = users
+                new_diary_progress.proof = application.proof
+                new_diary_progress.time_split = application.time_split
+                db.session.add(new_diary_progress)
+
+                # Get the difference in points between the new diary and the old diary
+                current_diary = DiaryTasks.query.filter_by(id=current_diary_progress.diary_id).first()
+                if current_diary is not None:
+                    points_difference = target_diary.diary_points - current_diary.diary_points
+                else:
+                    points_difference = 0
+                    print("Could not find current diary for id: " + current_diary_progress.diary_id)
+                
+                # Add points to the user
+                points = ClanPointsLog()
+                points.user_id = user.discord_id
+                points.tag = application.diary_shorthand
+                points.points = points_difference
+                points.timestamp = datetime.datetime.now()
+                db.session.add(points)
+                
+                user.rank_points += points_difference
+
+                update_successful.append(user_id)
+            else:
+                update_failed.append(user_id)
+                continue
 
     db.session.commit()
-    return json.dumps(data.serialize(), cls=ModelEncoder)
 
+    return_json = {
+        "successful": update_successful,
+        "failed": update_failed
+    }
+    return json.dumps(return_json), 200
+
+@app.route("/applications/diary/<id>/reject", methods=['PUT'])
+def reject_application_diary(id):
+    application = DiaryApplications.query.filter_by(id=id).first()
+    if application is None:
+        return "Could not find Application", 404
+    
+    if application.status != "Pending":
+        return "Application is not pending", 400
+
+    application.status = "Rejected"
+    body = request.get_json()
+    if body is None or "reason" not in body:
+        application.reason = "No reason provided"
+    else:
+        application.reason = body["reason"]
+    application.verdict_timestamp = datetime.datetime.now()
+
+    db.session.commit()
+    return "Application rejected", 200
