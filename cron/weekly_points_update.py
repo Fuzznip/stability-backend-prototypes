@@ -10,17 +10,11 @@ from models.models import Users, ClanPointsLog
 from datetime import datetime
 import logging
 
-# Create logs directory if it doesn't exist
-logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
-if not os.path.exists(logs_dir):
-    os.makedirs(logs_dir)
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("logs/weekly_points.log")
+        logging.StreamHandler()
     ]
 )
 
@@ -43,13 +37,14 @@ def update_weekly_points():
             # Check if it's a multiple of 7
             if days_since_join > 0:
                 user.time_points = days_since_join // 7 * 10
-                count += 1
 
                 # Log the points
                 log_entry = ClanPointsLog(user_id=user.discord_id, points=10, tag="Weekly Points")
                 db.session.add(log_entry)
                 
-                logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
+                if days_since_join % 7 == 0:
+                    logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
+                count += 1
     
     db.session.commit()
     logging.info(f"Added weekly points to {count} users")
