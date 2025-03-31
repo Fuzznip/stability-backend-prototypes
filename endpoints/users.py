@@ -7,6 +7,14 @@ from models.models import ClanApplications, RankApplications, TierApplications, 
 import json
 from datetime import datetime
 
+@app.route("/users", methods=['GET'])
+def get_users():
+    users = Users.query.all()
+    data = []
+    for row in users:
+        data.append(row.serialize())
+    return json.dumps(data, cls=ModelEncoder)
+
 @app.route("/users", methods=['POST'])
 def create_user():
     data = Users(**request.get_json())

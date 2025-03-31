@@ -38,6 +38,22 @@
   ],
   "paths": {
     "/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get all users",
+        "description": "Returns a list of all users in the system",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/User"
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": ["Users"],
         "summary": "Create a new user",
