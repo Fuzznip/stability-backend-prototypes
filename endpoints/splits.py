@@ -20,7 +20,8 @@ def create_split():
     split_points = round(split_points, 2)
     cpl = ClanPointsLog(user_id=data.user_id, points=split_points, tag="Split: {}".format(data.item_name))
 
-    user.rank_points += split_points
+    user.split_points += split_points
+    user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
 
     db.session.add(cpl)
     db.session.add(data)
