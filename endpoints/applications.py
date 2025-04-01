@@ -160,6 +160,7 @@ def create_application_diary():
     
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
+    data.diary_name = diary[0].diary_name # All diaries with the same shorthand have the same name
 
     if diary[0].scale is not None:
         try:
