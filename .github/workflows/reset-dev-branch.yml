@@ -1,0 +1,27 @@
+name: Reset Dev Branch After Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  reset-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          # Using default GITHUB_TOKEN which has permissions to push to non-protected branches
+          
+      - name: Setup Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+      - name: Reset dev branch to main
+        run: |
+          git checkout dev
+          git reset --hard origin/main
+          git push -f origin dev
