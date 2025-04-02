@@ -14,9 +14,14 @@ def create_split():
     if user is None:
         return "Could not find User", 404
     data.id = None
-    if int(data.group_size) == 0:
-        return "Group size cannot be zero", 400
-    data.split_contribution = (int(data.item_price) / int(data.group_size)) * (int(data.group_size) - 1)
+    if int(data.group_size) <= 0:
+        return "Group size cannot be less than or equal to zero", 400
+    if int(data.item_price) <= 0:
+        return "Item price cannot be less than or equal to zero", 400
+    split_per_person = int(data.item_price) / int(data.group_size)
+    if split_per_person < 1_000_000:
+        return "Split per person cannot be less than 1,000,000", 400
+    data.split_contribution = int((int(data.item_price) / int(data.group_size)) * (int(data.group_size) - 1)) # Truncating the split contribution to the nearest integer
 
     split_points = data.split_contribution * (10 / 4_000_000)
     split_points = round(split_points, 2)

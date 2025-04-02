@@ -22,6 +22,7 @@
                     "discord_id": "12345",
                     "runescape_name": "TestUser",
                     "previous_names": ["UserTester", "TesterUser"],
+                    "alt_names": null,
                     "is_member": true,
                     "rank": "Quester",
                     "rank_points": 0,
@@ -29,13 +30,19 @@
                     "achievements": null,
                     "join_date": "2025-03-28T11:23:59.642101",
                     "timestamp": "2025-03-28T11:22:00.718276",
-                    "is_active": true
+                    "is_active": true,
+                    "diary_points": 0,
+                    "event_points": 0,
+                    "time_points": 0,
+                    "split_points": 0,
+                    "settings": {}
                   },
                   {
                     "id": "1c715e03328043c9a8aa4e3c55db112c",
                     "discord_id": "54321",
                     "runescape_name": "Funzip",
                     "previous_names": null,
+                    "alt_names": null,
                     "is_member": true,
                     "rank": "Trialist",
                     "rank_points": 375,
@@ -43,7 +50,12 @@
                     "achievements": ["Infernal Cape", "Grandmaster Combat Achiever"],
                     "join_date": "2024-03-29T01:03:22.101679",
                     "timestamp": "2025-03-29T01:01:45.054974",
-                    "is_active": true
+                    "is_active": true,
+                    "diary_points": 0,
+                    "event_points": 0,
+                    "time_points": 0,
+                    "split_points": 0,
+                    "settings": {}
                   }
                 ]
               }
@@ -114,6 +126,59 @@
           }
         }
       }
+    },
+    "/users/{id}/rename": {
+      "put": {
+        "tags": ["users"],
+        "summary": "Rename a user",
+        "description": "Renames a user and updates their previous names list",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Discord ID of the user to rename",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "runescape_name": {
+                    "type": "string",
+                    "description": "New RuneScape name for the user"
+                  }
+                },
+                "required": ["runescape_name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User renamed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or no JSON received"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -137,6 +202,12 @@
               "type": "string"
             }
           },
+          "alt_names": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
+          },
           "is_member": {
             "type": "boolean"
           },
@@ -150,7 +221,10 @@
             "type": ["object", "null"]
           },
           "achievements": {
-            "type": ["array", "null"]
+            "type": ["array", "null"],
+            "items": {
+              "type": "string"
+            }
           },
           "join_date": {
             "type": "string",
@@ -162,6 +236,26 @@
           },
           "is_active": {
             "type": "boolean"
+          },
+          "diary_points": {
+            "type": "integer",
+            "default": 0
+          },
+          "event_points": {
+            "type": "integer",
+            "default": 0
+          },
+          "time_points": {
+            "type": "integer",
+            "default": 0
+          },
+          "split_points": {
+            "type": "integer",
+            "default": 0
+          },
+          "settings": {
+            "type": "object",
+            "default": {}
           }
         }
       }

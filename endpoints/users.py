@@ -103,6 +103,31 @@ def delete_user(id):
     db.session.commit()
     return json.dumps("User deleted successfully", cls=ModelEncoder), 200
 
+@app.route("/users/<id>/rename", methods=['PUT'])
+def rename_user(id):
+    data = Users(**request.get_json())
+    if data is None:
+        return "No JSON received", 400
+    user = Users.query.filter_by(discord_id=id).first()
+    if user is None or not user.is_active:
+        return "Could not find User", 404
+    if not user.previous_names:
+        user.previous_names = []
+    else:
+        # Remove blank entries from previous names
+        user.previous_names = [name for name in user.previous_names if name]
+
+    user.previous_names.append(user.runescape_name)
+    user.previous_names = list(set(user.previous_names))  # Remove duplicates
+    user.runescape_name = data.runescape_name
+    
+    # Remove new name from previous names if it exists
+    if user.runescape_name in user.previous_names:
+        user.previous_names.remove(user.runescape_name)
+
+    db.session.commit()
+    return json.dumps(user.serialize(), cls=ModelEncoder)
+
 @app.route("/users/<id>/splits", methods=['GET'])
 def get_user_splits(id):
     user = Users.query.filter_by(discord_id=id).first()
