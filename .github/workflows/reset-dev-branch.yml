@@ -13,7 +13,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          # Using default GITHUB_TOKEN which has permissions to push to non-protected branches
           
       - name: Setup Git
         run: |
@@ -21,7 +20,9 @@ jobs:
           git config --global user.email "actions@github.com"
           
       - name: Reset dev branch to main
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
           git checkout dev
           git reset --hard origin/main
-          git push -f origin dev
+          git push https://x-access-token:${{ secrets.PAT }}@github.com/Fuzznip/stabilisite-backend.git dev
