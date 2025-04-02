@@ -10,6 +10,7 @@ class Users(db.Model, Serializer):
     discord_id = db.Column(db.String, unique=True, nullable=False)
     runescape_name = db.Column(db.String, nullable=False)
     previous_names = db.Column(ARRAY(db.String))
+    alt_names = db.Column(ARRAY(db.String))
     is_member = db.Column(db.Boolean)
     rank = db.Column(db.String)
     rank_points = db.Column(db.Integer)
@@ -22,6 +23,7 @@ class Users(db.Model, Serializer):
     event_points = db.Column(db.Integer, default=0)
     time_points = db.Column(db.Integer, default=0)
     split_points = db.Column(db.Integer, default=0)
+    settings = db.Column(JSONB, default={})
 
     def serialize(self):
         return Serializer.serialize(self)
