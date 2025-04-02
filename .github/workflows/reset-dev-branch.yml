@@ -25,5 +25,5 @@ jobs:
         run: |
           git checkout dev
           git reset --hard origin/main
-          git push https://x-access-token:${{ secrets.PAT }}@github.com/Fuzznip/stabilisite-backend.git dev
+          git push --force https://x-access-token:${{ secrets.PAT }}@github.com/Fuzznip/stabilisite-backend.git dev
           
