@@ -79,7 +79,7 @@ class ClanRanks(db.Model, Serializer):
     rank_icon = db.Column(db.String)
     rank_color = db.Column(db.String)
     rank_description = db.Column(db.Text)
-    rank_requirements = db.Column(db.Text)
+    rank_requirements = db.Column(ARRAY(db.String))
 
     def serialize(self):
         return Serializer.serialize(self)
