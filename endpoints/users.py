@@ -24,7 +24,7 @@ def create_user():
     if user is not None and user.is_active:
         return "Id already exists", 400
     
-    if not user.is_active:
+    if user is not None and not user.is_active:
         user.runescape_name = data.runescape_name
         user.previous_names = data.previous_names
         user.is_member = data.is_member
