@@ -45,6 +45,7 @@ class Splits(db.Model, Serializer):
     user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
     item_name = db.Column(db.String, nullable=False)
     item_price = db.Column(db.Numeric, nullable=False)
+    item_id = db.Column(db.String, nullable=False)
     split_contribution = db.Column(db.Numeric, nullable=False)
     group_size = db.Column(db.Integer, nullable=False)
     screenshot_link = db.Column(db.String)
