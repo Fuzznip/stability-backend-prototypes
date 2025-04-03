@@ -1,9 +1,10 @@
 from app import app, db
 from helper.helpers import ModelEncoder
 from flask import request, jsonify
-from models.models import Splits, Users, ClanPointsLog
+from models.models import Splits, Users
 import json
 from datetime import datetime
+from helpers.clan_points_helper import increment_clan_points, PointTag
 
 @app.route("/splits", methods=['POST'])
 def create_split():
@@ -25,12 +26,14 @@ def create_split():
 
     split_points = data.split_contribution * (10 / 4_000_000)
     split_points = round(split_points, 2)
-    cpl = ClanPointsLog(user_id=data.user_id, points=split_points, tag="Split: {}".format(data.item_name))
 
-    user.split_points += split_points
-    user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
+    increment_clan_points(
+        user_id=data.user_id,
+        points=split_points,
+        tag=PointTag.SPLIT,
+        message=f"Split: {data.item_name}"
+    )
 
-    db.session.add(cpl)
     db.session.add(data)
     db.session.commit()
     return json.dumps(data.serialize(), cls=ModelEncoder)

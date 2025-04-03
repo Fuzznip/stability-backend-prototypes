@@ -28,7 +28,7 @@ def create_user():
     if user is not None and not user.is_active:
         user.runescape_name = data.runescape_name
         user.previous_names = data.previous_names
-        user.is_member = data.is_member
+        user.is_member = data.is_member if data.is_member is not None else False
         user.rank = data.rank
         user.rank_points = data.rank_points
         user.progression_data = data.progression_data

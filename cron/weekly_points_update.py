@@ -6,9 +6,10 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
 
 from app import db, app  # Import the Flask app
-from models.models import Users, ClanPointsLog
+from models.models import Users
 from datetime import datetime
 import logging
+from helpers.clan_points_helper import increment_clan_points, PointTag
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,19 +39,19 @@ def update_weekly_points():
                 days_since_join = (today - join_date).days
                 
                 # Check if it's a multiple of 7
-                if days_since_join > 0:
-                    user.time_points = days_since_join // 7 * 10
-                    
-                    if days_since_join % 7 == 0:
-                        # Only log the point increase when the user has been a member for a multiple of 7 days
-                        log_entry = ClanPointsLog(user_id=user.discord_id, points=10, tag="Weekly Points")
-                        db.session.add(log_entry)
+                if days_since_join > 0 and days_since_join % 7 == 0:
+                    try:
+                        increment_clan_points(
+                            user_id=user.discord_id,
+                            points=10,
+                            tag=PointTag.TIME,
+                            message="Weekly Points"
+                        )
                         logging.info(f"Added 10 points to user {user.discord_id} ({user.runescape_name}) - {days_since_join} days membership")
                         count += 1
+                    except ValueError as e:
+                        logging.error(f"Error updating points for user {user.discord_id}: {e}")
 
-                    user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
-        
-        db.session.commit()
         logging.info(f"Added weekly points to {count} users")
         return count
 

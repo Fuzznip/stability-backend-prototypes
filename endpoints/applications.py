@@ -4,6 +4,7 @@ from helper.time_utils import parse_time_to_seconds
 from flask import request
 from models.models import ClanApplications, Users
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
+from helpers.clan_points_helper import increment_clan_points, PointTag
 import json, datetime
 import logging
 
@@ -105,6 +106,13 @@ def accept_application(id):
     user.rank = "Trialist"
     user.is_member = True
     user.join_date = datetime.datetime.now()
+
+    increment_clan_points(
+        user_id=user.discord_id,
+        points=10,  # Example points for accepting an application
+        tag=PointTag.EVENT,
+        message="Application Accepted"
+    )
 
     db.session.commit()
     return "Application accepted", 200
@@ -276,16 +284,12 @@ def accept_application_diary(id):
             new_diary_progress.time_split = application.time_split
             db.session.add(new_diary_progress)
 
-            # Add points to the user
-            points = ClanPointsLog()
-            points.user_id = user.discord_id
-            points.tag = application.diary_shorthand
-            points.points = target_diary.diary_points
-            points.timestamp = datetime.datetime.now()
-            db.session.add(points)
-
-            user.diary_points += target_diary.diary_points
-            user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
+            increment_clan_points(
+                user_id=user.discord_id,
+                points=target_diary.diary_points,
+                tag=PointTag.DIARY,
+                message=application.diary_shorthand
+            )
 
             update_successful.append(user_id)
         else:
@@ -316,16 +320,13 @@ def accept_application_diary(id):
                 else:
                     points_difference = 0
                     logging.warning("Could not find current diary for id: " + str(current_diary_progress.diary_id))
-                # Add points to the user
-                points = ClanPointsLog()
-                points.user_id = user.discord_id
-                points.tag = application.diary_shorthand
-                points.points = points_difference
-                points.timestamp = datetime.datetime.now()
-                db.session.add(points)
                 
-                user.diary_points += points_difference
-                user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
+                increment_clan_points(
+                    user_id=user.discord_id,
+                    points=points_difference,
+                    tag=PointTag.DIARY,
+                    message=application.diary_shorthand
+                )
 
                 update_successful.append(user_id)
             else:
