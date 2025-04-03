@@ -2,7 +2,6 @@ from app import app, db
 from helper.helpers import ModelEncoder
 from helper.time_utils import parse_time_to_seconds
 from flask import request
-from operator import itemgetter
 from models.models import Users, Splits, DiaryTasks, DiaryCompletionLog, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
 import json
@@ -109,6 +108,10 @@ def rename_user(id):
     data = Users(**request.get_json())
     if data is None:
         return "No JSON received", 400
+    # Ensure the given name is not taken by another user
+    existing_user = Users.query.filter_by(runescape_name=data.runescape_name).first()
+    if existing_user and existing_user.discord_id != id:
+        return "Runescape name already taken", 400
     user = Users.query.filter_by(discord_id=id).first()
     if user is None or not user.is_active:
         return "Could not find User", 404
@@ -272,6 +275,18 @@ def apply_for_diary(id):
 
     return json.dumps(diary[0].serialize(), cls=ModelEncoder), 201
 
+@app.route("/users/<id>/diary/applications", methods=['GET'])
+def get_user_diary_applications(id):
+    user = Users.query.filter_by(discord_id=id).first()
+    if user is None or not user.is_active:
+        return "Could not find User", 404
+    
+    # Sort by pending applications first, then by timestamp
+    applications = DiaryApplications.query.filter_by(user_id=id).order_by(DiaryApplications.status == "Pending", DiaryApplications.timestamp.desc()).all()
+    data = []
+    for row in applications:
+        data.append(row.serialize())
+    return json.dumps(data, cls=ModelEncoder)
 
 @app.route("/users/<id>/pointlog", methods=['GET'])
 def get_user_point_log(id):
@@ -279,5 +294,4 @@ def get_user_point_log(id):
     rows = ClanPointsLog.query.filter_by(user_id=id).order_by(ClanPointsLog.timestamp.desc()).all()
     for row in rows:
         data.append(row.serialize())
-    data.sort(key=itemgetter('timestamp'), reverse=False)
     return data

@@ -288,7 +288,7 @@ def accept_application_diary(id):
                 user_id=user.discord_id,
                 points=target_diary.diary_points,
                 tag=PointTag.DIARY,
-                message=application.diary_shorthand
+                message=f"Diary: {application.diary_shorthand}"
             )
 
             update_successful.append(user_id)
@@ -325,7 +325,7 @@ def accept_application_diary(id):
                     user_id=user.discord_id,
                     points=points_difference,
                     tag=PointTag.DIARY,
-                    message=application.diary_shorthand
+                    message=f"Diary: {application.diary_shorthand}"
                 )
 
                 update_successful.append(user_id)
