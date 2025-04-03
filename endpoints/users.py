@@ -111,6 +111,12 @@ def rename_user(id):
     user = Users.query.filter_by(discord_id=id).first()
     if user is None or not user.is_active:
         return "Could not find User", 404
+
+    # Check if the name is in use by another user
+    existing_user = Users.query.filter_by(runescape_name=data.runescape_name).first()
+    if existing_user is not None and existing_user.discord_id != id:
+        return "Name is already in use", 400
+
     if not user.previous_names:
         user.previous_names = []
     else:
