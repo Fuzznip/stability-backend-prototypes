@@ -12,6 +12,7 @@ class Users(db.Model, Serializer):
     previous_names = db.Column(ARRAY(db.String))
     alt_names = db.Column(ARRAY(db.String))
     is_member = db.Column(db.Boolean)
+    is_admin = db.Column(db.Boolean)
     rank = db.Column(db.String)
     rank_points = db.Column(db.Integer)
     progression_data = db.Column(JSONB)
@@ -31,7 +32,7 @@ class Users(db.Model, Serializer):
 class Announcements(db.Model, Serializer):
     __tablename__ = 'announcements'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    author_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    author_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     message = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
     is_pinned = db.Column(db.Boolean)
@@ -42,7 +43,7 @@ class Announcements(db.Model, Serializer):
 class Splits(db.Model, Serializer):
     __tablename__ = 'splits'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     item_name = db.Column(db.String, nullable=False)
     item_price = db.Column(db.Numeric, nullable=False)
     item_id = db.Column(db.String, nullable=False)
@@ -102,7 +103,7 @@ class RaidTiers(db.Model, Serializer):
 class Achievements(db.Model, Serializer):
     __tablename__ = 'achievements'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     achievement_name = db.Column(db.String, nullable=False)
     achievement_points = db.Column(db.Integer, nullable=False)
     achievement_color = db.Column(db.String)
@@ -155,7 +156,7 @@ class BossDictionary(db.Model, Serializer):
 class TimeSplitApplications(db.Model, Serializer):
     __tablename__ = 'time_splits'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     boss_name = db.Column(db.String, nullable=False)
     split = db.Column(db.String, nullable=False)
     players = db.Column(ARRAY(db.String))
@@ -186,7 +187,7 @@ class DiaryTasks(db.Model, Serializer):
 class DiaryApplications(db.Model, Serializer):
     __tablename__ = 'diary_applications'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     runescape_name = db.Column(db.String, nullable=False)
     diary_name = db.Column(db.String, nullable=False)
     diary_shorthand = db.Column(db.String, nullable=False)
@@ -195,7 +196,7 @@ class DiaryApplications(db.Model, Serializer):
     time_split = db.Column(db.String)
     proof = db.Column(db.String)
     status = db.Column(db.String, default='Pending')
-    target_diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id'))
+    target_diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id', ondelete="CASCADE"))  # Cascade delete
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
@@ -206,8 +207,8 @@ class DiaryApplications(db.Model, Serializer):
 class DiaryCompletionLog(db.Model, Serializer):
     __tablename__ = 'diary_log'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
-    diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
+    diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id', ondelete="CASCADE"))  # Cascade delete
     diary_category_shorthand = db.Column(db.String)
     party = db.Column(ARRAY(db.String))
     party_ids = db.Column(ARRAY(db.String))
@@ -221,7 +222,7 @@ class DiaryCompletionLog(db.Model, Serializer):
 class ClanPointsLog(db.Model, Serializer):
     __tablename__ = 'clan_points_log'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = db.Column(db.String, db.ForeignKey('users.discord_id'))
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     points = db.Column(db.Numeric, nullable=False)
     tag = db.Column(db.String)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())

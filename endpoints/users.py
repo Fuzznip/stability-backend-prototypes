@@ -211,6 +211,7 @@ def apply_for_diary(id):
     
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
+    data.diary_name = diary[0].diary_name
 
     if diary[0].scale is not None:
         try:
@@ -226,8 +227,12 @@ def apply_for_diary(id):
         
         # Parse application time
         data_time_seconds = parse_time_to_seconds(data.time_split)
+        if data_time_seconds is None:
+            return "Invalid time split provided", 400
         if not data_time_seconds:
-            return "No time split provided for timed diary task", 400
+            return "Time split cannot be empty", 400
+        if data_time_seconds < 0:
+            return "Time split cannot be negative", 400
             
         for task in diary:
             # Parse task time
@@ -257,7 +262,7 @@ def apply_for_diary(id):
         db.session.add(data)
         db.session.commit()
         
-        return json.dumps(succeeded_task.serialize(), cls=ModelEncoder), 201
+        return json.dumps(data.serialize(), cls=ModelEncoder), 201
     else: # If the diary is not timed, it is a one-off task
         # Check if the user has already completed the diary
         diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=str(diary[0].id)).first()
@@ -273,7 +278,7 @@ def apply_for_diary(id):
     db.session.add(data)
     db.session.commit()
 
-    return json.dumps(diary[0].serialize(), cls=ModelEncoder), 201
+    return json.dumps(data.serialize(), cls=ModelEncoder), 201
 
 @app.route("/users/<id>/diary/applications", methods=['GET'])
 def get_user_diary_applications(id):
@@ -281,8 +286,13 @@ def get_user_diary_applications(id):
     if user is None or not user.is_active:
         return "Could not find User", 404
     
-    # Sort by pending applications first, then by timestamp
-    applications = DiaryApplications.query.filter_by(user_id=id).order_by(DiaryApplications.status == "Pending", DiaryApplications.timestamp.desc()).all()
+    # Separate Pending and Accepted/Rejected applications
+    pending_applications = DiaryApplications.query.filter_by(user_id=id, status="Pending").order_by(DiaryApplications.timestamp.desc()).all()
+    other_applications = DiaryApplications.query.filter_by(user_id=id).filter(DiaryApplications.status != "Pending").order_by(DiaryApplications.verdict_timestamp.desc()).all()
+    
+    # Combine the results
+    applications = pending_applications + other_applications
+    
     data = []
     for row in applications:
         data.append(row.serialize())

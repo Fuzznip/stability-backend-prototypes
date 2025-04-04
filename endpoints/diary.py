@@ -40,9 +40,9 @@ def create_diary_task():
     data = DiaryTasks(**request.get_json())
     if data is None:
         return "No JSON received", 400
-    task = DiaryTasks.query.filter_by(diary_name=data.diary_name).first()
-    if task is not None:
-        return "Task already exists", 400
+    task = DiaryTasks.query.filter_by(diary_name=data.diary_name).count()
+    if task > 0 and data.diary_time is None:
+        return "One-off task already exists", 400
     db.session.add(data)
     db.session.commit()
     return json.dumps(data.serialize(), cls=ModelEncoder)
