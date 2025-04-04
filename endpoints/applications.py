@@ -169,6 +169,8 @@ def create_application_diary():
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
     data.diary_name = diary[0].diary_name # All diaries with the same shorthand have the same name
+    data.timestamp = datetime.datetime.now()
+    print(data.timestamp)
 
     if diary[0].scale is not None:
         try:
@@ -215,7 +217,7 @@ def create_application_diary():
         db.session.add(data)
         db.session.commit()
         
-        return json.dumps(succeeded_task.serialize(), cls=ModelEncoder), 201
+        return json.dumps(data.serialize(), cls=ModelEncoder), 201
     else: # If the diary is not timed, it is a one-off task
         # Check if the user has already completed the diary
         diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=str(diary[0].id)).first()
@@ -231,7 +233,7 @@ def create_application_diary():
     db.session.add(data)
     db.session.commit()
 
-    return json.dumps(diary[0].serialize(), cls=ModelEncoder), 201
+    return json.dumps(data.serialize(), cls=ModelEncoder), 201
 
 @app.route("/applications/diary/<id>", methods=['GET'])
 def get_application_diary(id):
@@ -269,8 +271,14 @@ def accept_application_diary(id):
             update_failed.append(application.party[i])
             continue
 
-        # Grab the latest diary progress for the user for this diary
-        current_diary_progress = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_category_shorthand=application.diary_shorthand).order_by(DiaryCompletionLog.timestamp.desc()).first()
+        # Grab the fastest diary progress for the user
+        # This will be the diary with the fastest time.
+        current_diary_progress = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_category_shorthand=application.diary_shorthand).all()
+        if current_diary_progress is not None and len(current_diary_progress) > 0:
+            current_diary_progress = sorted(current_diary_progress, key=lambda x: parse_time_to_seconds(x.time_split))[0]
+            print(current_diary_progress.time_split)
+        else:
+            current_diary_progress = None
 
         if current_diary_progress is None:
             new_diary_progress = DiaryCompletionLog()
@@ -281,6 +289,7 @@ def accept_application_diary(id):
                 new_diary_progress.party = application.party
                 new_diary_progress.party_ids = users
             new_diary_progress.proof = application.proof
+            new_diary_progress.points = target_diary.diary_points
             new_diary_progress.time_split = application.time_split
             db.session.add(new_diary_progress)
 
@@ -310,11 +319,13 @@ def accept_application_diary(id):
                     new_diary_progress.party = application.party
                     new_diary_progress.party_ids = users
                 new_diary_progress.proof = application.proof
+                new_diary_progress.points = target_diary.diary_points
                 new_diary_progress.time_split = application.time_split
                 db.session.add(new_diary_progress)
 
                 # Get the difference in points between the new diary and the old diary
                 current_diary = DiaryTasks.query.filter_by(id=current_diary_progress.diary_id).first()
+                print(target_diary.diary_points, current_diary.diary_points)
                 if current_diary is not None:
                     points_difference = target_diary.diary_points - current_diary.diary_points
                 else:

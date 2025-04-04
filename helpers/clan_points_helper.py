@@ -31,6 +31,8 @@ def increment_clan_points(user_id, points, tag: PointTag, message=None):
         user.event_points += points
     else:
         raise ValueError("Invalid tag")
+    
+    user.rank_points += points
 
     # Log the points update in ClanPointsLog
     log_entry = ClanPointsLog(

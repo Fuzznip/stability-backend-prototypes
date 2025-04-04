@@ -1,5 +1,6 @@
 import json
 import pytest
+import time
 from app import app, db
 from models.models import Users
 from sqlalchemy.sql import text
@@ -59,11 +60,11 @@ def test_apply_with_too_slow_time(test_user):
         "user_id": test_user.discord_id,
         "runescape_name": test_user.runescape_name,
         "diary_shorthand": "tob3",
-        "party": ["Member1", "Member2", "Member3"],  # Match the required party size
+        "party": [test_user.runescape_name, "Member2", "Member3"],  # Match the required party size
         "time_split": "12:00",
         "proof": "http://example.com/proof.png"
     }
-    response = client.post(f"/users/{test_user.discord_id}/diary/apply", json=application)
+    response = client.post(f"/applications/diary", json=application)
     assert response.status_code == 400
     assert response.data.decode() == "Diary time is not fast enough"
 
@@ -76,11 +77,11 @@ def test_apply_faster_than_previous_times(test_user):
             "user_id": test_user.discord_id,
             "runescape_name": test_user.runescape_name,
             "diary_shorthand": "tob3",
-            "party": ["Member1", "Member2", "Member3"],  # Match the required party size
+            "party": [test_user.runescape_name, "Member2", "Member3"],  # Match the required party size
             "time_split": time_split,
             "proof": "http://example.com/proof.png"
         }
-        return client.post(f"/users/{test_user.discord_id}/diary/apply", json=application)
+        return client.post(f"/applications/diary", json=application)
 
     # Apply faster than the first time
     response = apply_for_diary("09:30")
@@ -112,10 +113,14 @@ def test_approve_all_except_fourth_application():
                 response = client.put(f"/applications/diary/{app_id[0]}/accept")
                 print(response.data)
                 assert response.status_code == 200
+
+                # Verify diary points and clan points are updated
+                user = Users.query.filter_by(discord_id="12345").first()
+                assert user.diary_points == 10 * (i + 1)  # Assuming each application gives 10 points
+                assert user.rank_points == 10 * (i + 1)
             else:
                 data = { "reason": "Didn't like your style, bub" }
                 response = client.put(f"/applications/diary/{app_id[0]}/reject", json=data)
-                print(response.data)
                 assert response.status_code == 200
 
 def test_reapply_and_approve_fourth_application(test_user):
@@ -126,11 +131,12 @@ def test_reapply_and_approve_fourth_application(test_user):
         "user_id": test_user.discord_id,
         "runescape_name": test_user.runescape_name,
         "diary_shorthand": "tob3",
-        "party": ["Member1", "Member2", "Member3"],  # Match the required party size
-        "time_split": "05:30",
+        "party": [test_user.runescape_name, "Member2", "Member3"],  # Match the required party size
+        "time_split": "03:30",
         "proof": "http://example.com/proof.png"
     }
-    response = client.post(f"/users/{test_user.discord_id}/diary/apply", json=application)
+    response = client.post(f"/applications/diary", json=application)
+    print(response.data)
     assert response.status_code == 201
 
     # Parse the application ID from the JSON response
@@ -139,7 +145,17 @@ def test_reapply_and_approve_fourth_application(test_user):
 
     # Approve the fourth application
     response = client.put(f"/applications/diary/{application_id}/accept")
+    print(response.data)
     assert response.status_code == 200
+
+    # Verify diary points and clan points are updated
+    with app.app_context():
+        user = Users.query.filter_by(discord_id=test_user.discord_id).first()
+        # Print all variables of user
+        print(user.__dict__)
+
+        assert user.diary_points == 40
+        assert user.rank_points == 40
 
 def test_apply_again_and_get_all_applications(test_user):
     client = app.test_client()
@@ -149,11 +165,11 @@ def test_apply_again_and_get_all_applications(test_user):
         "user_id": test_user.discord_id,
         "runescape_name": test_user.runescape_name,
         "diary_shorthand": "tob3",
-        "party": ["Member1", "Member2", "Member3"],  # Match the required party size
+        "party": [test_user.runescape_name, "Member2", "Member3"],  # Match the required party size
         "time_split": "03:00",
         "proof": "http://example.com/proof.png"
     }
-    response = client.post(f"/users/{test_user.discord_id}/diary/apply", json=application)
+    response = client.post(f"/applications/diary", json=application)
     assert response.status_code == 201
     
     application_id = json.loads(response.data)["id"]
@@ -164,11 +180,11 @@ def test_apply_again_and_get_all_applications(test_user):
         "user_id": test_user.discord_id,
         "runescape_name": test_user.runescape_name,
         "diary_shorthand": "tob3",
-        "party": ["Member1", "Member2", "Member3"],  # Match the required party size
+        "party": [test_user.runescape_name, "Member2", "Member3"],  # Match the required party size
         "time_split": "02:00",
         "proof": "http://example.com/proof.png"
     }
-    response = client.post(f"/users/{test_user.discord_id}/diary/apply", json=application)
+    response = client.post(f"/applications/diary", json=application)
     assert response.status_code == 201
 
     # Approve the previous application
@@ -179,5 +195,9 @@ def test_apply_again_and_get_all_applications(test_user):
     response = client.get(f"/users/{test_user.discord_id}/diary/applications")
     assert response.status_code == 200
     data = json.loads(response.data)
+    print(response.data)
     assert len(data) > 0
     assert data[0]["status"] == "Pending"
+
+    response = client.post(f"/applications/diary", json=application)
+    assert response.status_code == 201
