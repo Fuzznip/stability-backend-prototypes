@@ -9,7 +9,7 @@ from app import db, app  # Import the Flask app
 from models.models import Users
 from datetime import datetime
 import logging
-from helpers.clan_points_helper import increment_clan_points, PointTag
+from helper.clan_points_helper import increment_clan_points, PointTag
 
 logging.basicConfig(
     level=logging.INFO,

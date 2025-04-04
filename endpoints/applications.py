@@ -4,7 +4,7 @@ from helper.time_utils import parse_time_to_seconds
 from flask import request
 from models.models import ClanApplications, Users
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
-from helpers.clan_points_helper import increment_clan_points, PointTag
+from helper.clan_points_helper import increment_clan_points, PointTag
 import json, datetime
 import logging
 

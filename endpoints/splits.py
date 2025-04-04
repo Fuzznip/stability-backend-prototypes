@@ -5,7 +5,7 @@ from models.models import Splits, Users
 import json
 import requests
 from datetime import datetime
-from helpers.clan_points_helper import increment_clan_points, PointTag
+from helper.clan_points_helper import increment_clan_points, PointTag
 
 @app.route("/splits", methods=['POST'])
 def create_split():
