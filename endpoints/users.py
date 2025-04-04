@@ -1,6 +1,5 @@
 from app import app, db
 from helper.helpers import ModelEncoder
-from helper.time_utils import parse_time_to_seconds
 from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
