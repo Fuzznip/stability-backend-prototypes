@@ -270,7 +270,7 @@ def apply_for_diary(id):
 @app.route("/users/<id>/pointlog", methods=['GET'])
 def get_user_point_log(id):
     data = []
-    rows = ClanPointsLog.query.filter_by(user_id=id).all()
+    rows = ClanPointsLog.query.filter_by(user_id=id).order_by(ClanPointsLog.timestamp.desc()).all()
     for row in rows:
         data.append(row.serialize())
     data.sort(key=itemgetter('timestamp'), reverse=False)
