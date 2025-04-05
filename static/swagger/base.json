@@ -34,9 +34,12 @@
     {
       "name": "diary",
       "description": "Diary tasks operations"
+    },
+    {
+      "name": "ranks",
+      "description": "Rank management operations"
     }
   ],
-  "paths": {},
   "components": {
     "schemas": {}
   }
