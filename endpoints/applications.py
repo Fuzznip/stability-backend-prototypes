@@ -170,7 +170,6 @@ def create_application_diary():
     data.runescape_name = user.runescape_name
     data.diary_name = diary[0].diary_name # All diaries with the same shorthand have the same name
     data.timestamp = datetime.datetime.now()
-    print(data.timestamp)
 
     if diary[0].scale is not None:
         try:
@@ -276,7 +275,6 @@ def accept_application_diary(id):
         current_diary_progress = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_category_shorthand=application.diary_shorthand).all()
         if current_diary_progress is not None and len(current_diary_progress) > 0:
             current_diary_progress = sorted(current_diary_progress, key=lambda x: parse_time_to_seconds(x.time_split))[0]
-            print(current_diary_progress.time_split)
         else:
             current_diary_progress = None
 
@@ -325,7 +323,7 @@ def accept_application_diary(id):
 
                 # Get the difference in points between the new diary and the old diary
                 current_diary = DiaryTasks.query.filter_by(id=current_diary_progress.diary_id).first()
-                print(target_diary.diary_points, current_diary.diary_points)
+                
                 if current_diary is not None:
                     points_difference = target_diary.diary_points - current_diary.diary_points
                 else:
