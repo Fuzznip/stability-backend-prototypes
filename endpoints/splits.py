@@ -6,6 +6,7 @@ import json
 import requests
 from datetime import datetime
 from helper.clan_points_helper import increment_clan_points, PointTag
+import decimal
 
 @app.route("/splits", methods=['POST'])
 def create_split():
@@ -40,8 +41,10 @@ def create_split():
             return "Item not found in OSRS API. Please provide a valid item name or ID.", 404
         
     user = Users.query.filter_by(discord_id=data.user_id).first()
-    if user is None:
+    if user is None or not user.is_active:
         return "Could not find User", 404
+    if user.is_member is False:
+        return "User is not a member", 400
     data.id = None
     if int(data.group_size) <= 0:
         return "Group size cannot be less than or equal to zero", 400
@@ -50,9 +53,9 @@ def create_split():
     split_per_person = int(data.item_price) / int(data.group_size)
     if split_per_person < 1_000_000:
         return "Split per person cannot be less than 1,000,000", 400
-    data.split_contribution = int((int(data.item_price) / int(data.group_size)) * (int(data.group_size) - 1)) # Truncating the split contribution to the nearest integer
+    data.split_contribution = int(split_per_person * (int(data.group_size) - 1)) # Truncating the split contribution to the nearest integer
 
-    split_points = data.split_contribution * (10 / 4_000_000)
+    split_points = data.split_contribution * decimal.Decimal(10) / decimal.Decimal(4_000_000)
     split_points = round(split_points, 2)
 
     increment_clan_points(
@@ -88,4 +91,40 @@ def get_splits():
 
     splits = splits_query.all()
     return jsonify([split.serialize() for split in splits])
+
+@app.route("/splits/<id>", methods=['PUT'])
+def update_split(id):
+    split = Splits.query.filter_by(id=id).first()
+    if not split:
+        return "Split not found", 404
+
+    data = request.get_json()
+    split.item_name = data.get("item_name", split.item_name)
+    split.item_price = data.get("item_price", split.item_price)
+    split.group_size = data.get("group_size", split.group_size)
+    split.split_contribution = data.get("split_contribution", split.split_contribution)
+    db.session.commit()
+    return json.dumps(split.serialize(), cls=ModelEncoder)
+
+@app.route("/splits/<id>", methods=['DELETE'])
+def delete_split(id):
+    split = Splits.query.filter_by(id=id).first()
+    if not split:
+        return "Split not found", 404
+    
+    # Remove the points from the user
+    user = Users.query.filter_by(discord_id=split.user_id).first()
+    if user:
+        split_points = split.split_contribution * decimal.Decimal(10/4_000_000)  # Updated to use decimal.Decimal
+        split_points = round(split_points, 2)
+        increment_clan_points(
+            user_id=user.discord_id,
+            points=-split_points,
+            tag=PointTag.SPLIT,
+            message=f"Split deleted: {split.item_name}"
+        )
+
+    db.session.delete(split)
+    db.session.commit()
+    return "Split deleted successfully", 200
 

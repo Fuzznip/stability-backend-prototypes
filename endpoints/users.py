@@ -1,6 +1,5 @@
 from app import app, db
 from helper.helpers import ModelEncoder
-from helper.time_utils import parse_time_to_seconds
 from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
@@ -222,3 +221,28 @@ def get_user_point_log(id):
     for row in rows:
         data.append(row.serialize())
     return data
+
+@app.route("/users/<id>/remove_from_clan", methods=['PUT'])
+def remove_user_from_clan(id):
+    user = Users.query.filter_by(discord_id=id).first()
+    if user is None or not user.is_active:
+        return "Could not find User", 404
+    
+    if not user.is_member:
+        return "User is not a member of the clan", 400
+    
+    # Remove the user from the clan
+    user.is_member = False
+    user.rank = "Guest"
+    time_points = user.time_points
+    increment_clan_points(
+        user_id=user.discord_id,
+        points=-time_points,
+        tag=PointTag.TIME,
+        message="Removed from clan"
+    )
+    user.time_points = 0
+    user.timestamp = datetime.now()
+    db.session.commit()
+    
+    return json.dumps(user.serialize(), cls=ModelEncoder)
