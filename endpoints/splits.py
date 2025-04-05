@@ -57,7 +57,6 @@ def create_split():
 
     split_points = data.split_contribution * decimal.Decimal(10) / decimal.Decimal(4_000_000)
     split_points = round(split_points, 2)
-    print(f"Split points: {split_points}")
 
     increment_clan_points(
         user_id=data.user_id,
