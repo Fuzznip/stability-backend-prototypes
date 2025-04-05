@@ -4,6 +4,7 @@ from helper.time_utils import parse_time_to_seconds
 from flask import request
 from models.models import ClanApplications, Users
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
+from helper.clan_points_helper import increment_clan_points, PointTag
 import json, datetime
 import logging
 
@@ -106,6 +107,13 @@ def accept_application(id):
     user.is_member = True
     user.join_date = datetime.datetime.now()
 
+    increment_clan_points(
+        user_id=user.discord_id,
+        points=10,  # Example points for accepting an application
+        tag=PointTag.EVENT,
+        message="Application Accepted"
+    )
+
     db.session.commit()
     return "Application accepted", 200
 
@@ -161,6 +169,7 @@ def create_application_diary():
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
     data.diary_name = diary[0].diary_name # All diaries with the same shorthand have the same name
+    data.timestamp = datetime.datetime.now()
 
     if diary[0].scale is not None:
         try:
@@ -207,7 +216,7 @@ def create_application_diary():
         db.session.add(data)
         db.session.commit()
         
-        return json.dumps(succeeded_task.serialize(), cls=ModelEncoder), 201
+        return json.dumps(data.serialize(), cls=ModelEncoder), 201
     else: # If the diary is not timed, it is a one-off task
         # Check if the user has already completed the diary
         diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=str(diary[0].id)).first()
@@ -223,7 +232,7 @@ def create_application_diary():
     db.session.add(data)
     db.session.commit()
 
-    return json.dumps(diary[0].serialize(), cls=ModelEncoder), 201
+    return json.dumps(data.serialize(), cls=ModelEncoder), 201
 
 @app.route("/applications/diary/<id>", methods=['GET'])
 def get_application_diary(id):
@@ -261,8 +270,13 @@ def accept_application_diary(id):
             update_failed.append(application.party[i])
             continue
 
-        # Grab the latest diary progress for the user for this diary
-        current_diary_progress = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_category_shorthand=application.diary_shorthand).order_by(DiaryCompletionLog.timestamp.desc()).first()
+        # Grab the fastest diary progress for the user
+        # This will be the diary with the fastest time.
+        current_diary_progress = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_category_shorthand=application.diary_shorthand).all()
+        if current_diary_progress is not None and len(current_diary_progress) > 0:
+            current_diary_progress = sorted(current_diary_progress, key=lambda x: parse_time_to_seconds(x.time_split))[0]
+        else:
+            current_diary_progress = None
 
         if current_diary_progress is None:
             new_diary_progress = DiaryCompletionLog()
@@ -273,19 +287,16 @@ def accept_application_diary(id):
                 new_diary_progress.party = application.party
                 new_diary_progress.party_ids = users
             new_diary_progress.proof = application.proof
+            new_diary_progress.points = target_diary.diary_points
             new_diary_progress.time_split = application.time_split
             db.session.add(new_diary_progress)
 
-            # Add points to the user
-            points = ClanPointsLog()
-            points.user_id = user.discord_id
-            points.tag = application.diary_shorthand
-            points.points = target_diary.diary_points
-            points.timestamp = datetime.datetime.now()
-            db.session.add(points)
-
-            user.diary_points += target_diary.diary_points
-            user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
+            increment_clan_points(
+                user_id=user.discord_id,
+                points=target_diary.diary_points,
+                tag=PointTag.DIARY,
+                message=f"Diary: {application.diary_shorthand}"
+            )
 
             update_successful.append(user_id)
         else:
@@ -306,26 +317,25 @@ def accept_application_diary(id):
                     new_diary_progress.party = application.party
                     new_diary_progress.party_ids = users
                 new_diary_progress.proof = application.proof
+                new_diary_progress.points = target_diary.diary_points
                 new_diary_progress.time_split = application.time_split
                 db.session.add(new_diary_progress)
 
                 # Get the difference in points between the new diary and the old diary
                 current_diary = DiaryTasks.query.filter_by(id=current_diary_progress.diary_id).first()
+                
                 if current_diary is not None:
                     points_difference = target_diary.diary_points - current_diary.diary_points
                 else:
                     points_difference = 0
                     logging.warning("Could not find current diary for id: " + str(current_diary_progress.diary_id))
-                # Add points to the user
-                points = ClanPointsLog()
-                points.user_id = user.discord_id
-                points.tag = application.diary_shorthand
-                points.points = points_difference
-                points.timestamp = datetime.datetime.now()
-                db.session.add(points)
                 
-                user.diary_points += points_difference
-                user.rank_points = user.time_points + user.diary_points + user.event_points + user.split_points
+                increment_clan_points(
+                    user_id=user.discord_id,
+                    points=points_difference,
+                    tag=PointTag.DIARY,
+                    message=f"Diary: {application.diary_shorthand}"
+                )
 
                 update_successful.append(user_id)
             else:

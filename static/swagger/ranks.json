@@ -1,0 +1,86 @@
+{
+  "get": {
+    "tags": ["ranks"],
+    "summary": "Get all ranks",
+    "description": "Retrieve a list of all ranks ordered by rank order.",
+    "operationId": "getAllRanks",
+    "responses": {
+      "200": {
+        "description": "A list of ranks",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Leader"
+                  },
+                  "rank_order": {
+                    "type": "integer",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClanRanks": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "rank_name": {
+            "type": "string",
+            "example": "Leader"
+          },
+          "rank_minimum_points": {
+            "type": "integer",
+            "example": 1000
+          },
+          "rank_minimum_days": {
+            "type": "integer",
+            "example": 30
+          },
+          "rank_order": {
+            "type": "integer",
+            "example": 1
+          },
+          "rank_icon": {
+            "type": "string",
+            "example": "https://example.com/icon.png"
+          },
+          "rank_color": {
+            "type": "string",
+            "example": "#FF5733"
+          },
+          "rank_description": {
+            "type": "string",
+            "example": "This is the leader rank."
+          },
+          "rank_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Requirement 1", "Requirement 2"]
+          }
+        }
+      }
+    }
+  }
+}
