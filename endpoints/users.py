@@ -1,5 +1,6 @@
 from app import app, db
 from helper.helpers import ModelEncoder
+from helper.set_discord_role import add_discord_role, remove_discord_role
 from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
@@ -243,7 +244,10 @@ def remove_user_from_clan(id):
     
     # Remove the user from the clan
     user.is_member = False
+    remove_discord_role(user, user.rank)
+    remove_discord_role(user, "Member")
     user.rank = "Guest"
+    add_discord_role(user, "Guest")
     time_points = user.time_points
     increment_clan_points(
         user_id=user.discord_id,
@@ -251,6 +255,7 @@ def remove_user_from_clan(id):
         tag=PointTag.TIME,
         message="Removed from clan"
     )
+
     user.time_points = 0
     user.timestamp = datetime.now(timezone.utc)
     db.session.commit()
