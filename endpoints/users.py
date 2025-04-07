@@ -12,7 +12,8 @@ def get_users():
     users = Users.query.all()
     data = []
     for row in users:
-        data.append(row.serialize())
+        if row.is_active:
+            data.append(row.serialize())
     return json.dumps(data, cls=ModelEncoder)
 
 @app.route("/users", methods=['POST'])

@@ -146,7 +146,7 @@ class TierApplications(db.Model, Serializer):
 class BossDictionary(db.Model, Serializer):
     __tablename__ = 'boss_dictionary'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, unique=True, nullable=False)
     shorthand = db.Column(db.String, nullable=False)
     icon = db.Column(db.String)
 
