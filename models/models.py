@@ -18,7 +18,7 @@ class Users(db.Model, Serializer):
     progression_data = db.Column(JSONB, default={})
     achievements = db.Column(ARRAY(db.String), default=[])
     join_date = db.Column(db.DateTime)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     is_active = db.Column(db.Boolean, default=True)
     diary_points = db.Column(db.Numeric, default=0)
     event_points = db.Column(db.Numeric, default=0)
@@ -34,7 +34,7 @@ class Announcements(db.Model, Serializer):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     author_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     message = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     is_pinned = db.Column(db.Boolean)
 
     def serialize(self):
@@ -50,7 +50,7 @@ class Splits(db.Model, Serializer):
     split_contribution = db.Column(db.Numeric, nullable=False)
     group_size = db.Column(db.Integer, nullable=False)
     screenshot_link = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -66,7 +66,7 @@ class ClanApplications(db.Model, Serializer):
     status = db.Column(db.String, default='Pending')
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -108,7 +108,7 @@ class Achievements(db.Model, Serializer):
     achievement_points = db.Column(db.Integer, nullable=False)
     achievement_color = db.Column(db.String)
     achievement_image = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -123,7 +123,7 @@ class RankApplications(db.Model, Serializer):
     status = db.Column(db.String, default='Pending')
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -138,7 +138,7 @@ class TierApplications(db.Model, Serializer):
     status = db.Column(db.String, default='Pending')
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -165,7 +165,21 @@ class TimeSplitApplications(db.Model, Serializer):
     verification_status = db.Column(db.String, default='Pending')
     verification_reason = db.Column(db.Text)
     verification_timestamp = db.Column(db.DateTime)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+
+    def serialize(self):
+        return Serializer.serialize(self)
+    
+class TimeSplitsLog(db.Model, Serializer):
+    __tablename__ = 'time_splits_log'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    submitter_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
+    boss = db.Column(db.String, db.ForeignKey('boss_dictionary.name', ondelete="CASCADE"))  # Cascade delete
+    split = db.Column(db.String, nullable=False)
+    players = db.Column(ARRAY(db.String))  # Cascade delete
+    scale = db.Column(db.String)
+    proof = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -199,7 +213,7 @@ class DiaryApplications(db.Model, Serializer):
     target_diary_id = db.Column(UUID(as_uuid=True), db.ForeignKey('diary_content.id', ondelete="CASCADE"))  # Cascade delete
     verdict_reason = db.Column(db.Text)
     verdict_timestamp = db.Column(db.DateTime)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -215,7 +229,7 @@ class DiaryCompletionLog(db.Model, Serializer):
     proof = db.Column(db.String)
     points = db.Column(db.Integer, nullable=False)
     time_split = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -226,7 +240,7 @@ class ClanPointsLog(db.Model, Serializer):
     user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     points = db.Column(db.Numeric, nullable=False)
     tag = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
         return Serializer.serialize(self)

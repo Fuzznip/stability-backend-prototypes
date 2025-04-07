@@ -41,7 +41,7 @@ def create_application():
                 db.session.commit()
                 return "Application status updated to pending", 200
         elif application.status == "Rejected":
-            if (datetime.datetime.now() - application.verdict_timestamp).days < 30:
+            if (datetime.datetime.now(datetime.timezone.utc) - application.verdict_timestamp).days < 30:
                 return "User has been rejected less than 30 days ago", 400
 
     data.id = None
@@ -50,13 +50,15 @@ def create_application():
     user = Users()
     user.discord_id = data.user_id
     user.runescape_name = data.runescape_name
-    user.rank = "Applicant"
+    user.rank = "Applied"
     user.rank_points = 0
     user.is_member = False
+    user.is_admin = False
     user.is_active = True
     user.diary_points = 0
     user.event_points = 0
     user.time_points = 0
+    user.event_points = 0
     db.session.add(user)
 
     db.session.commit()
@@ -100,12 +102,12 @@ def accept_application(id):
     if application is None:
         return "Could not find Application", 404
     application.status = "Accepted"
-    application.verdict_timestamp = datetime.datetime.now()
+    application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     user = Users.query.filter_by(discord_id=application.user_id).first()
     user.rank = "Trialist"
     user.is_member = True
-    user.join_date = datetime.datetime.now()
+    user.join_date = datetime.datetime.now(datetime.timezone.utc)
 
     increment_clan_points(
         user_id=user.discord_id,
@@ -128,7 +130,7 @@ def reject_application(id):
         application.reason = "No reason provided"
     else:
         application.reason = body["reason"]
-    application.verdict_timestamp = datetime.datetime.now()
+    application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     user = Users.query.filter_by(discord_id=application.user_id).first()
     user.rank = "Guest"
@@ -169,7 +171,7 @@ def create_application_diary():
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
     data.diary_name = diary[0].diary_name # All diaries with the same shorthand have the same name
-    data.timestamp = datetime.datetime.now()
+    data.timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     if diary[0].scale is not None:
         try:
@@ -254,7 +256,7 @@ def accept_application_diary(id):
     if target_diary is None:
         return "Could not find Diary", 404
     application.status = "Accepted"
-    application.verdict_timestamp = datetime.datetime.now()
+    application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
     
     update_successful = []
     update_failed = []
@@ -365,7 +367,7 @@ def reject_application_diary(id):
         application.reason = "No reason provided"
     else:
         application.reason = body["reason"]
-    application.verdict_timestamp = datetime.datetime.now()
+    application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
     db.session.commit()
     return "Application rejected", 200

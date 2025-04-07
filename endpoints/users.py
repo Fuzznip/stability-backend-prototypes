@@ -4,7 +4,8 @@ from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+from helper.clan_points_helper import increment_clan_points, PointTag
 
 @app.route("/users", methods=['GET'])
 def get_users():
@@ -32,7 +33,7 @@ def create_user():
         user.progression_data = data.progression_data
         user.achievements = data.achievements
         user.join_date = data.join_date
-        user.timestamp = datetime.now()
+        user.timestamp = datetime.now(timezone.utc)
         user.is_active = True
         user.diary_points = data.diary_points
         user.event_points = data.event_points
@@ -242,7 +243,7 @@ def remove_user_from_clan(id):
         message="Removed from clan"
     )
     user.time_points = 0
-    user.timestamp = datetime.now()
+    user.timestamp = datetime.now(timezone.utc)
     db.session.commit()
     
     return json.dumps(user.serialize(), cls=ModelEncoder)

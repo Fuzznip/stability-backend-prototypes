@@ -1,7 +1,7 @@
 import pytest
 from app import app, db
 from models.models import Users, Splits
-from datetime import datetime
+from datetime import datetime, timezone
 import decimal
 import json
 
@@ -22,8 +22,8 @@ def test_user():
         runescape_name="TestUser",
         is_active=True,
         is_member=True,
-        join_date=datetime.now(),
-        timestamp=datetime.now()
+        join_date=datetime.now(timezone.utc),
+        timestamp=datetime.now(timezone.utc)
     )
     db.session.add(user)
     db.session.commit()
@@ -36,7 +36,7 @@ def test_create_split(test_client, test_user):
         "item_price": 5000000,
         "item_id": 123456,
         "group_size": 5,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response = test_client.post("/splits", json=split_data)
     assert response.status_code == 200
@@ -50,7 +50,7 @@ def test_update_split(test_client, test_user):
         item_id=987654,
         group_size=3,
         split_contribution=2000000,
-        timestamp=datetime.now()
+        timestamp=datetime.now(timezone.utc)
     )
     db.session.add(split)
     db.session.commit()
@@ -74,7 +74,7 @@ def test_delete_split(test_client, test_user):
         "item_price": 4000000,
         "item_id": 789012,
         "group_size": 4,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response = test_client.post("/splits", json=split_data)
     assert response.status_code == 200
@@ -110,7 +110,7 @@ def test_split_points_added_correctly(test_client, test_user):
         "item_price": 5000000,
         "item_id": 123456,
         "group_size": 5,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response = test_client.post("/splits", json=split_data)
     assert response.status_code == 200
@@ -129,8 +129,8 @@ def test_non_member_cannot_submit_split(test_client):
         runescape_name="NonMemberUser",
         is_active=True,
         is_member=False,  # Non-member
-        join_date=datetime.now(),
-        timestamp=datetime.now()
+        join_date=datetime.now(timezone.utc),
+        timestamp=datetime.now(timezone.utc)
     )
     db.session.add(non_member_user)
     db.session.commit()
@@ -141,7 +141,7 @@ def test_non_member_cannot_submit_split(test_client):
         "item_price": 5000000,
         "item_id": 123456,
         "group_size": 5,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response = test_client.post("/splits", json=split_data)
     assert response.status_code == 400
@@ -158,7 +158,7 @@ def test_add_and_delete_middle_split(test_client, test_user):
         "item_price": 3000000,
         "item_id": 111111,
         "group_size": 3,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response_1 = test_client.post("/splits", json=split_data_1)
     assert response_1.status_code == 200
@@ -170,7 +170,7 @@ def test_add_and_delete_middle_split(test_client, test_user):
         "item_price": 4000000,
         "item_id": 222222,
         "group_size": 4,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response_2 = test_client.post("/splits", json=split_data_2)
     assert response_2.status_code == 200
@@ -183,7 +183,7 @@ def test_add_and_delete_middle_split(test_client, test_user):
         "item_price": 5000000,
         "item_id": 333333,
         "group_size": 5,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     response_3 = test_client.post("/splits", json=split_data_3)
     assert response_3.status_code == 200
