@@ -7,7 +7,7 @@ sys.path.append(project_root)
 
 from app import db, app  # Import the Flask app
 from models.models import Users
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from helper.clan_points_helper import increment_clan_points, PointTag
 
@@ -34,7 +34,7 @@ def update_weekly_points():
         for user in users:
             if user.is_active and user.is_member and user.join_date:
                 # Calculate days since join
-                today = datetime.now().date()
+                today = datetime.now(timezone.utc).date()
                 join_date = user.join_date.date() if isinstance(user.join_date, datetime) else user.join_date
                 days_since_join = (today - join_date).days
                 

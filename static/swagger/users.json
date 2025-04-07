@@ -356,6 +356,32 @@
           }
         }
       }
+    },
+    "/users/{id}/remove_from_clan": {
+      "put": {
+        "tags": ["users"],
+        "summary": "Remove user from clan",
+        "description": "Removes a user from the clan.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Discord ID of the user to remove",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User removed from clan successfully"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
     }
   },
   "components": {

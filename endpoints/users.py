@@ -4,14 +4,16 @@ from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+from helper.clan_points_helper import increment_clan_points, PointTag
 
 @app.route("/users", methods=['GET'])
 def get_users():
     users = Users.query.all()
     data = []
     for row in users:
-        data.append(row.serialize())
+        if row.is_active:
+            data.append(row.serialize())
     return json.dumps(data, cls=ModelEncoder)
 
 @app.route("/users", methods=['POST'])
@@ -32,7 +34,7 @@ def create_user():
         user.progression_data = data.progression_data
         user.achievements = data.achievements
         user.join_date = data.join_date
-        user.timestamp = datetime.now()
+        user.timestamp = datetime.now(timezone.utc)
         user.is_active = True
         user.diary_points = data.diary_points
         user.event_points = data.event_points
@@ -225,8 +227,10 @@ def get_user_point_log(id):
 @app.route("/users/<id>/remove_from_clan", methods=['PUT'])
 def remove_user_from_clan(id):
     user = Users.query.filter_by(discord_id=id).first()
-    if user is None or not user.is_active:
-        return "Could not find User", 404
+    if user is None:
+        user = Users.query.filter(Users.runescape_name.ilike(id)).first()
+        if user is None:
+            return "Could not find User", 404
     
     if not user.is_member:
         return "User is not a member of the clan", 400
@@ -242,7 +246,7 @@ def remove_user_from_clan(id):
         message="Removed from clan"
     )
     user.time_points = 0
-    user.timestamp = datetime.now()
+    user.timestamp = datetime.now(timezone.utc)
     db.session.commit()
     
     return json.dumps(user.serialize(), cls=ModelEncoder)

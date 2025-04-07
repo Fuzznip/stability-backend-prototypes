@@ -4,7 +4,7 @@ from flask import request, jsonify
 from models.models import Splits, Users
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from helper.clan_points_helper import increment_clan_points, PointTag
 import decimal
 
@@ -54,6 +54,8 @@ def create_split():
     if split_per_person < 1_000_000:
         return "Split per person cannot be less than 1,000,000", 400
     data.split_contribution = int(split_per_person * (int(data.group_size) - 1)) # Truncating the split contribution to the nearest integer
+    # Get the current time in UTC
+    data.timestamp = datetime.now(timezone.utc)
 
     split_points = data.split_contribution * decimal.Decimal(10) / decimal.Decimal(4_000_000)
     split_points = round(split_points, 2)
