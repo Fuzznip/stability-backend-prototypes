@@ -66,7 +66,7 @@ class ClanApplications(db.Model, Serializer):
     goals = db.Column(db.Text)
     status = db.Column(db.String, default='Pending')
     verdict_reason = db.Column(db.Text)
-    verdict_timestamp = db.Column(db.DateTime)
+    verdict_timestamp = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
