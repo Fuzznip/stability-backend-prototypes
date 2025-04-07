@@ -8,6 +8,7 @@ class Users(db.Model, Serializer):
     __tablename__ = 'users'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     discord_id = db.Column(db.String, unique=True, nullable=False)
+    discord_avatar_url= db.Column(db.String)
     runescape_name = db.Column(db.String, nullable=False)
     previous_names = db.Column(ARRAY(db.String), default=[])
     alt_names = db.Column(ARRAY(db.String), default=[])
