@@ -4,6 +4,7 @@ from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
 import json
+import logging
 from datetime import datetime, timezone
 from helper.clan_points_helper import increment_clan_points, PointTag
 
@@ -59,15 +60,20 @@ def get_user_profile(id):
 
 @app.route("/users/<id>", methods=['PUT'])
 def update_user_profile(id):
-    data = Users(**request.get_json())
+    data = request.get_json()
     if data is None:
         return "No JSON received", 400
     user = Users.query.filter_by(discord_id=id).first()
     if user is None or not user.is_active:
         return "Could not find User", 404
-    user.runescape_name = data.runescape_name
-    user.rank = data.rank
-    user.progression_data = data.progression_data
+    
+    for key, value in data.items():
+        if hasattr(user, key):
+            logging.info(f"Updating {key} to {value}")
+            setattr(user, key, value)
+        else:
+            logging.info(f"Key {key} not found in user model")
+    
     db.session.commit()
     return json.dumps(user.serialize(), cls=ModelEncoder)
 
