@@ -8,6 +8,7 @@ class Users(db.Model, Serializer):
     __tablename__ = 'users'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     discord_id = db.Column(db.String, unique=True, nullable=False)
+    discord_avatar_url= db.Column(db.String, default="https://i.imgur.com/4LdSYto.jpeg")
     runescape_name = db.Column(db.String, nullable=False)
     previous_names = db.Column(ARRAY(db.String), default=[])
     alt_names = db.Column(ARRAY(db.String), default=[])
@@ -154,7 +155,7 @@ class BossDictionary(db.Model, Serializer):
         return Serializer.serialize(self)
 
 class TimeSplitApplications(db.Model, Serializer):
-    __tablename__ = 'time_splits'
+    __tablename__ = 'time_split_applications'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     boss_name = db.Column(db.String, nullable=False)

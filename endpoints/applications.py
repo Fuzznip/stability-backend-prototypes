@@ -1,6 +1,7 @@
 from app import app, db
 from helper.helpers import ModelEncoder
 from helper.time_utils import parse_time_to_seconds
+from helper.set_discord_role import add_discord_role, remove_discord_role
 from flask import request
 from models.models import ClanApplications, Users
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
@@ -26,16 +27,21 @@ def create_application():
     data = ClanApplications(**request.get_json())
     if data is None:
         return "No JSON received", 400
+    user = Users.query.filter_by(discord_id=data.user_id).first()
+    if user and user.is_member and user.is_active:
+        return "User is already a member", 400
     application = ClanApplications.query.filter_by(user_id=data.user_id).first()
     if application is not None:
         if application.status == "Pending":
             return "Application already exists and is pending", 400
         elif application.status == "Accepted":
-            user = Users.query.filter_by(discord_id=data.user_id).first()
             if user and user.is_member and user.is_active:
                 return "User is already a member", 400
             else:
                 application.status = "Pending"
+                add_discord_role(user, "Applied")
+                remove_discord_role(user, "Guest")
+                remove_discord_role(user, "Applicant")
                 application.verdict_timestamp = None
                 application.verdict_reason = None
                 db.session.commit()
@@ -51,6 +57,9 @@ def create_application():
     user.discord_id = data.user_id
     user.runescape_name = data.runescape_name
     user.rank = "Applied"
+    add_discord_role(user, "Applied")
+    remove_discord_role(user, "Guest")
+    remove_discord_role(user, "Applicant")
     user.rank_points = 0
     user.is_member = False
     user.is_admin = False
@@ -106,6 +115,11 @@ def accept_application(id):
 
     user = Users.query.filter_by(discord_id=application.user_id).first()
     user.rank = "Trialist"
+    add_discord_role(user, "Trialist")
+    add_discord_role(user, "Member")
+    remove_discord_role(user, "Guest")
+    remove_discord_role(user, "Applied")
+    remove_discord_role(user, "Applicant")
     user.is_member = True
     user.join_date = datetime.datetime.now(datetime.timezone.utc)
 
@@ -134,6 +148,9 @@ def reject_application(id):
 
     user = Users.query.filter_by(discord_id=application.user_id).first()
     user.rank = "Guest"
+    add_discord_role(user, "Guest")
+    remove_discord_role(user, "Applied")
+    remove_discord_role(user, "Applicant")
 
     db.session.commit()
     return "Application rejected", 200
