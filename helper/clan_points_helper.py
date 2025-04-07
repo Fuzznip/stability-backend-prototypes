@@ -39,7 +39,7 @@ def increment_clan_points(user_id, points, tag: PointTag, message=None):
         user_id=user_id,
         points=points,
         tag= message if message else tag.value,
-        timestamp=datetime.datetime.now()
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     db.session.add(log_entry)
 
