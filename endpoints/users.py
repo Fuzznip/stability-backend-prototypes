@@ -227,8 +227,10 @@ def get_user_point_log(id):
 @app.route("/users/<id>/remove_from_clan", methods=['PUT'])
 def remove_user_from_clan(id):
     user = Users.query.filter_by(discord_id=id).first()
-    if user is None or not user.is_active:
-        return "Could not find User", 404
+    if user is None:
+        user = Users.query.filter(Users.runescape_name.ilike(id)).first()
+        if user is None:
+            return "Could not find User", 404
     
     if not user.is_member:
         return "User is not a member of the clan", 400
