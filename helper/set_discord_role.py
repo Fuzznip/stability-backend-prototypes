@@ -13,8 +13,12 @@ def add_discord_role(user, role):
     user_id = user.discord_id
     token = os.getenv("DISCORD_BOT_API_TOKEN")
 
-    url = os.getenv("DISCORD_BOT_API") + f"/roles/{user_id}/add?role={role}&token={token}"
-    requests.post(url)
+    url = os.getenv("DISCORD_BOT_API") + f"/roles/{user_id}/add"
+    json = {
+        "role": role,
+        "token": token
+    }
+    requests.post(url, json=json)
 
 def remove_discord_role(user, role):
     """
@@ -26,5 +30,9 @@ def remove_discord_role(user, role):
     user_id = user.discord_id
     token = os.getenv("DISCORD_BOT_API_TOKEN")
 
-    url = os.getenv("DISCORD_BOT_API") + f"/roles/{user_id}/remove?role={role}&token={token}"
-    requests.post(url)
+    url = os.getenv("DISCORD_BOT_API") + f"/roles/{user_id}/remove"
+    json = {
+        "role": role,
+        "token": token
+    }
+    requests.post(url, json=json)
