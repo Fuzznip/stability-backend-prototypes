@@ -169,6 +169,20 @@ class TimeSplitApplications(db.Model, Serializer):
 
     def serialize(self):
         return Serializer.serialize(self)
+    
+class TimeSplitsLog(db.Model, Serializer):
+    __tablename__ = 'time_splits_log'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    submitter_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
+    boss = db.Column(db.String, db.ForeignKey('boss_dictionary.name', ondelete="CASCADE"))  # Cascade delete
+    split = db.Column(db.String, nullable=False)
+    players = db.Column(ARRAY(db.String))
+    scale = db.Column(db.String)
+    proof = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+
+    def serialize(self):
+        return Serializer.serialize(self)
 
 class DiaryTasks(db.Model, Serializer):
     __tablename__ = 'diary_content'
