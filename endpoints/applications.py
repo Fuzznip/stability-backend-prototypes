@@ -39,12 +39,12 @@ def create_application():
                 return "User is already a member", 400
             else:
                 application.status = "Pending"
-                add_discord_role(user, "Applied")
-                remove_discord_role(user, "Guest")
-                remove_discord_role(user, "Applicant")
                 application.verdict_timestamp = None
                 application.verdict_reason = None
                 db.session.commit()
+                add_discord_role(user, "Applied")
+                remove_discord_role(user, "Guest")
+                remove_discord_role(user, "Applicant")
                 return "Application status updated to pending", 200
         elif application.status == "Rejected":
             if (datetime.datetime.now(datetime.timezone.utc) - application.verdict_timestamp).days < 30:
@@ -57,9 +57,6 @@ def create_application():
     user.discord_id = data.user_id
     user.runescape_name = data.runescape_name
     user.rank = "Applied"
-    add_discord_role(user, "Applied")
-    remove_discord_role(user, "Guest")
-    remove_discord_role(user, "Applicant")
     user.rank_points = 0
     user.is_member = False
     user.is_admin = False
@@ -71,6 +68,9 @@ def create_application():
     db.session.add(user)
 
     db.session.commit()
+    add_discord_role(user, "Applied")
+    remove_discord_role(user, "Guest")
+    remove_discord_role(user, "Applicant")
     return json.dumps(data.serialize(), cls=ModelEncoder)
 
 @app.route("/applications/<id>", methods=['GET'])
