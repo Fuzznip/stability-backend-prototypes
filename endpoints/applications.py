@@ -51,6 +51,7 @@ def create_application():
                 return "User has been rejected less than 30 days ago", 400
 
     data.id = None
+    data.timestamp = datetime.datetime.now(datetime.timezone.utc)
     db.session.add(data)
 
     user = Users()
