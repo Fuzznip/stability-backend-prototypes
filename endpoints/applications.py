@@ -51,6 +51,7 @@ def create_application():
                 return "User has been rejected less than 30 days ago", 400
 
     data.id = None
+    data.timestamp = datetime.datetime.now(datetime.timezone.utc)
     db.session.add(data)
 
     user = Users()
@@ -140,7 +141,7 @@ def reject_application(id):
         return "Could not find Application", 404
     application.status = "Rejected"
     body = request.get_json()
-    if body is None:
+    if body is None or "reason" not in body:
         application.reason = "No reason provided"
     else:
         application.reason = body["reason"]
@@ -238,7 +239,7 @@ def create_application_diary():
         return json.dumps(data.serialize(), cls=ModelEncoder), 201
     else: # If the diary is not timed, it is a one-off task
         # Check if the user has already completed the diary
-        diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=str(diary[0].id)).first()
+        diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=diary[0].id).first()
         if diary_completion is not None:
             return "Diary already completed", 400
 
@@ -246,12 +247,22 @@ def create_application_diary():
         diary_application = DiaryApplications.query.filter_by(user_id=user.discord_id, target_diary_id=diary[0].id).first()
         if diary_application is not None and diary_application.status == "Pending":
             return "Diary application already pending", 400
+        
+        data.target_diary_id = diary[0].id
+        data.party_ids = []
+        for member in data.party:
+            # search case insensitive
+            member = member.lower()
+            # find user by runescape name
+            user = Users.query.filter(Users.runescape_name.ilike(member)).first()
+            if user is None or not user.is_active:
+                data.party_ids.append("")
+            else:
+                data.party_ids.append(user.discord_id)
+        db.session.add(data)
+        db.session.commit()
 
-    data.target_diary_id = diary[0].id
-    db.session.add(data)
-    db.session.commit()
-
-    return json.dumps(data.serialize(), cls=ModelEncoder), 201
+        return json.dumps(data.serialize(), cls=ModelEncoder), 201
 
 @app.route("/applications/diary/<id>", methods=['GET'])
 def get_application_diary(id):
