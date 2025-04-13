@@ -239,7 +239,7 @@ def create_application_diary():
         return json.dumps(data.serialize(), cls=ModelEncoder), 201
     else: # If the diary is not timed, it is a one-off task
         # Check if the user has already completed the diary
-        diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=str(diary[0].id)).first()
+        diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=diary[0].id).first()
         if diary_completion is not None:
             return "Diary already completed", 400
         
