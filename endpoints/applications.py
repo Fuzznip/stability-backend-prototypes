@@ -248,11 +248,21 @@ def create_application_diary():
         if diary_application is not None and diary_application.status == "Pending":
             return "Diary application already pending", 400
         
-    data.target_diary_id = diary[0].id
-    db.session.add(data)
-    db.session.commit()
+        data.target_diary_id = diary[0].id
+        data.party_ids = []
+        for member in data.party:
+            # search case insensitive
+            member = member.lower()
+            # find user by runescape name
+            user = Users.query.filter(Users.runescape_name.ilike(member)).first()
+            if user is None or not user.is_active:
+                data.party_ids.append("")
+            else:
+                data.party_ids.append(user.discord_id)
+        db.session.add(data)
+        db.session.commit()
 
-    return json.dumps(data.serialize(), cls=ModelEncoder), 201
+        return json.dumps(data.serialize(), cls=ModelEncoder), 201
 
 @app.route("/applications/diary/<id>", methods=['GET'])
 def get_application_diary(id):
