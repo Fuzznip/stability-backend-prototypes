@@ -65,7 +65,7 @@ def test_apply_with_too_slow_time(test_user):
         "proof": "http://example.com/proof.png"
     }
     response = client.post(f"/applications/diary", json=application)
-    assert response.status_code == 400
+    assert response.status_code == 427
     assert response.data.decode() == "Diary time is not fast enough"
 
 def test_apply_faster_than_previous_times(test_user):
@@ -101,7 +101,7 @@ def test_apply_faster_than_previous_times(test_user):
 
     # Apply faster than 1 seconds
     response = apply_for_diary("00:00")
-    assert response.status_code == 400 # Should fail as it's not a valid time
+    assert response.status_code == 420 # Should fail as it's not a valid time
 
 def test_approve_all_except_fourth_application():
     client = app.test_client()
