@@ -515,24 +515,19 @@ def accept_application_raid_tier(id):
 
 @app.route("/applications/raidTier/<id>/reject", methods=['PUT'])
 def reject_application_raid_tier(id):
-    print("1")
     application = RaidTierApplication.query.filter_by(id=id).first()
     if application is None:
-        print("2")
         return "Could not find Application", 404
 
     if application.status != "Pending":
         print(application.status)
         return "Application is not pending", 400
-    print("1")
     application.status = "Rejected"
     body = request.get_json()
     if body is None or "reason" not in body:
         application.verdict_reason = "No reason provided"
     else:
         application.verdict_reason = body["reason"]
-    print("1")
     application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
-    print(application.status)
     db.session.commit()
     return "Application rejected", 200
