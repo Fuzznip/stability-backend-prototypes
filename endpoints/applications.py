@@ -547,9 +547,8 @@ def create_application_raid_tier():
 
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
-    data.diary_name = raid_tier.tier_name
     data.timestamp = datetime.datetime.now(datetime.timezone.utc)
-    data.target_diary_id = raid_tier.id
+    data.target_raid_tier_id = raid_tier.id
     db.session.add(data)
     db.session.commit()
 
