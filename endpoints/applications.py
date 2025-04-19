@@ -529,7 +529,7 @@ def create_application_raid_tier():
         return "Could not find Raid Tier", 404
 
     diary_completion = RaidTierLog.query.filter_by(user_id=user.discord_id,
-                                                   target_raid_tier_id=raid_tier.id).first()
+                                                   target_raid_tier_id=str(raid_tier.id)).first()
     if diary_completion is not None:
         return "Raid Tier already Achieved", 400
 
