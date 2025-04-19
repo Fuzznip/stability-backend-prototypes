@@ -3,7 +3,7 @@ from helper.helpers import ModelEncoder
 from helper.time_utils import parse_time_to_seconds
 from helper.set_discord_role import add_discord_role, remove_discord_role
 from flask import request
-from models.models import ClanApplications, Users
+from models.models import ClanApplications, Users, RaidTierApplication, RaidTiers, RaidTierLog
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
 from helper.clan_points_helper import increment_clan_points, PointTag
 import json, datetime
@@ -161,7 +161,7 @@ def get_applications_diary():
     params = request.args
     filter = params.get('filter')
     discord_id = params.get('discord_id')
-    
+
     if filter is not None:
         applications = DiaryApplications.query.filter_by(status=filter).all()
     elif discord_id is not None:
@@ -185,7 +185,7 @@ def create_application_diary():
     diary = DiaryTasks.query.filter_by(diary_shorthand=data.diary_shorthand).all()
     if diary is None or len(diary) == 0:
         return "Could not find Diary", 404
-    
+
     data.user_id = user.discord_id
     data.runescape_name = user.runescape_name
     data.diary_name = diary[0].diary_name # All diaries with the same shorthand have the same name
@@ -194,24 +194,23 @@ def create_application_diary():
     if diary[0].scale is not None:
         try:
             if len(data.party) != int(diary[0].scale):
-                return "Party size does not match diary group scale", 418
+                return "Party size does not match diary group scale", 400
         except TypeError:
-            return "Party was not provided", 419
-    
+            return "Party was not provided", 400
     if diary[0].diary_time is not None:
         # Find the fastest diary time that the application beats
         fastest_time = None
         succeeded_task = None
-        
+
         # Parse application time
         data_time_seconds = parse_time_to_seconds(data.time_split)
         if not data_time_seconds:
-            return "No time split provided for timed diary task", 420
-            
+            return "No time split provided for timed diary task", 400
+          
         for task in diary:
             # Parse task time
             task_time_seconds = parse_time_to_seconds(task.diary_time)
-            
+
             # Compare times in seconds
             if data_time_seconds < task_time_seconds:
                 if fastest_time is None or task_time_seconds < fastest_time:
@@ -219,8 +218,8 @@ def create_application_diary():
                     succeeded_task = task
 
         if succeeded_task is None:
-            return "Diary time is not fast enough", 427
-        
+            return "Diary time is not fast enough", 400
+
         data.target_diary_id = succeeded_task.id
         data.party_ids = []
         for member in data.party:
@@ -232,17 +231,17 @@ def create_application_diary():
                 data.party_ids.append("")
             else:
                 data.party_ids.append(user.discord_id)
-        
+
         db.session.add(data)
         db.session.commit()
-        
+
         return json.dumps(data.serialize(), cls=ModelEncoder), 201
     else: # If the diary is not timed, it is a one-off task
 
         # Check if the user has already completed the diary
         diary_completion = DiaryCompletionLog.query.filter_by(user_id=user.discord_id, diary_id=diary[0].id).first()
         if diary_completion is not None:
-            return "Diary already completed", 430
+            return "Diary already completed", 400
         
         # CA special case
         if diary[0].diary_shorthand in ["elite", "master", "gm"]:
@@ -322,16 +321,16 @@ def accept_application_diary(id):
     application = DiaryApplications.query.filter_by(id=id).first()
     if application is None:
         return "Could not find Application", 404
-    
+
     if application.status != "Pending":
         return "Application is not pending", 400
-    
+
     target_diary = DiaryTasks.query.filter_by(id=application.target_diary_id).first()
     if target_diary is None:
         return "Could not find Diary", 404
     application.status = "Accepted"
     application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
-    
+
     update_successful = []
     update_failed = []
 
@@ -450,13 +449,13 @@ def accept_application_diary(id):
 
                 # Get the difference in points between the new diary and the old diary
                 current_diary = DiaryTasks.query.filter_by(id=current_diary_progress.diary_id).first()
-                
+
                 if current_diary is not None:
                     points_difference = target_diary.diary_points - current_diary.diary_points
                 else:
                     points_difference = 0
                     logging.warning("Could not find current diary for id: " + str(current_diary_progress.diary_id))
-                
+
                 increment_clan_points(
                     user_id=user.discord_id,
                     points=points_difference,
@@ -482,7 +481,7 @@ def reject_application_diary(id):
     application = DiaryApplications.query.filter_by(id=id).first()
     if application is None:
         return "Could not find Application", 404
-    
+
     if application.status != "Pending":
         return "Application is not pending", 400
 
@@ -494,5 +493,148 @@ def reject_application_diary(id):
         application.reason = body["reason"]
     application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
 
+    db.session.commit()
+    return "Application rejected", 200
+
+
+@app.route("/applications/raidTier", methods=['GET'])
+def get_applications_raid_tier():
+    params = request.args
+    filter = params.get('filter')
+    discord_id = params.get('discord_id')
+
+    if filter is not None:
+        applications = RaidTierApplication.query.filter_by(status=filter).all()
+    elif discord_id is not None:
+        applications = RaidTierApplication.query.filter_by(user_id=discord_id).all()
+    else:
+        applications = RaidTierApplication.query.all()
+
+    data = []
+    for row in applications:
+        data.append(row.serialize())
+    return data
+
+
+@app.route("/applications/raidTier", methods=['POST'])
+def create_application_raid_tier():
+    data = RaidTierApplication(**request.get_json())
+    if data is None:
+        return "No JSON received", 400
+    user = Users.query.filter_by(discord_id=data.user_id).first()
+    if user is None or not user.is_active:
+        return "Could not find User", 404
+    raid_tier = RaidTiers.query.filter_by(id=data.target_raid_tier_id).first()
+    if raid_tier is None:
+        return "Could not find Raid Tier", 404
+
+    diary_completion = RaidTierLog.query.filter_by(user_id=user.discord_id,
+                                                   target_raid_tier_id=str(raid_tier.id)).first()
+    if diary_completion is not None:
+        return "Raid Tier already Achieved", 400
+
+    current_raid_tier_progress = RaidTierLog.query.filter_by(user_id=user.discord_id,
+                                                                tier_name=raid_tier.tier_name).order_by(RaidTierLog.tier_order.desc()).all()
+    if len(current_raid_tier_progress) > 0:
+        if current_raid_tier_progress[0].tier_order > raid_tier.tier_order:
+            return "Already achieved higher raid tier", 400
+
+    # Check if the user has already applied for the Raid Tier
+    raid_tier_application = RaidTierApplication.query.filter_by(user_id=user.discord_id,
+                                                                target_raid_tier_id=raid_tier.id).first()
+    if raid_tier_application is not None and raid_tier_application.status == "Pending":
+        return "Diary application already pending", 400
+
+    data.user_id = user.discord_id
+    data.runescape_name = user.runescape_name
+    data.diary_name = raid_tier.tier_name
+    data.timestamp = datetime.datetime.now(datetime.timezone.utc)
+    data.target_diary_id = raid_tier.id
+    db.session.add(data)
+    db.session.commit()
+
+    return json.dumps(data.serialize(), cls=ModelEncoder), 201
+
+
+@app.route("/applications/raidTier/<id>", methods=['GET'])
+def get_application_raid_tier(id):
+    application = RaidTierApplication.query.filter_by(id=id).first()
+    if application is None:
+        return "Could not find Application", 404
+    return json.dumps(application.serialize(), cls=ModelEncoder)
+
+
+@app.route("/applications/raidTier/<id>/accept", methods=['PUT'])
+def accept_application_raid_tier(id):
+    application = RaidTierApplication.query.filter_by(id=id).first()
+    if application is None:
+        return "Could not find Application", 404
+
+    if application.status != "Pending":
+        return "Application is not pending", 400
+
+    target_raid_tier = RaidTiers.query.filter_by(id=application.target_raid_tier_id).first()
+    if target_raid_tier is None:
+        return "Could not find Raid Tier", 404
+    user = Users.query.filter_by(discord_id=application.user_id).first()
+    if user is None:
+        return "Could not find User", 400
+    current_raid_tier_progress = RaidTierLog.query.filter_by(user_id=user.discord_id,
+                                                                tier_name=target_raid_tier.tier_name).order_by(RaidTierLog.tier_order.desc()).all()
+    new_raid_log = RaidTierLog()
+    new_raid_log.tier_order = target_raid_tier.tier_order
+    new_raid_log.tier_name = target_raid_tier.tier_name
+    new_raid_log.tier_points = target_raid_tier.tier_points
+    new_raid_log.user_id = user.discord_id
+    new_raid_log.target_raid_tier_id = target_raid_tier.id
+
+
+    if len(current_raid_tier_progress) > 0:
+        if current_raid_tier_progress[0].tier_order > target_raid_tier.tier_order:
+            reject_application_raid_tier(id)
+            return "Already completed higher tier", 400
+        application.status = "Accepted"
+        application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        current_raid_tier_points = current_raid_tier_progress[0].tier_points
+        point_difference = target_raid_tier.tier_points - current_raid_tier_points
+        db.session.add(new_raid_log)
+        increment_clan_points(
+            user_id=user.discord_id,
+            points=point_difference,
+            tag=PointTag.RAID_TIER,
+            message=f"Raid Tier: {target_raid_tier.tier_name} {target_raid_tier.tier_order}"
+        )
+    else:
+        application.status = "Accepted"
+        application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        db.session.add(new_raid_log)
+        print(target_raid_tier.tier_points)
+        increment_clan_points(
+            user_id=user.discord_id,
+            points=target_raid_tier.tier_points,
+            tag=PointTag.RAID_TIER,
+            message=f"Raid Tier: {target_raid_tier.tier_name} {target_raid_tier.tier_order}"
+        )
+
+    db.session.commit()
+    return "Application accepted", 200
+
+
+@app.route("/applications/raidTier/<id>/reject", methods=['PUT'])
+def reject_application_raid_tier(id):
+    application = RaidTierApplication.query.filter_by(id=id).first()
+    if application is None:
+        return "Could not find Application", 404
+
+    if application.status != "Pending":
+        print(application.status)
+        return "Application is not pending", 400
+    application.status = "Rejected"
+    body = request.get_json()
+    if body is None or "reason" not in body:
+        application.verdict_reason = "No reason provided"
+    else:
+        application.verdict_reason = body["reason"]
+    application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
     db.session.commit()
     return "Application rejected", 200

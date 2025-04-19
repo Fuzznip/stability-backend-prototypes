@@ -7,6 +7,7 @@ class PointTag(Enum):
     TIME = "time"
     SPLIT = "split"
     EVENT = "event"
+    RAID_TIER = "raid tier"
 
 def increment_clan_points(user_id, points, tag: PointTag, message=None):
     """
@@ -29,6 +30,8 @@ def increment_clan_points(user_id, points, tag: PointTag, message=None):
         user.split_points += points
     elif tag == PointTag.EVENT:
         user.event_points += points
+    elif tag == PointTag.RAID_TIER:
+        user.raid_tier_points += points
     else:
         raise ValueError("Invalid tag")
     

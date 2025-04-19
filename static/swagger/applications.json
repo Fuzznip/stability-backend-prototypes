@@ -457,6 +457,183 @@
           }
         }
       }
+    },
+    "/applications/raidTier": {
+      "get": {
+        "tags": ["raid tier applications"],
+        "summary": "Get all raid tier applications",
+        "description": "Returns a list of all raid tier applications with optional filtering",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filter by application status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["Pending", "Accepted", "Rejected"]
+            }
+          },
+          {
+            "name": "discord_id",
+            "in": "query",
+            "description": "Filter by discord ID",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RaidTierApplication"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["raid tier applications"],
+        "summary": "Create a new raid tier application",
+        "description": "Creates a new raid tier application",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRaidTierApplication"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Raid Tier application created successfully"
+          },
+          "400": {
+            "description": "Invalid input or application issues"
+          },
+          "404": {
+            "description": "User or raid tier not found"
+          }
+        }
+      }
+    },
+    "/applications/raidTier/{id}": {
+      "get": {
+        "tags": ["raid tier applications"],
+        "summary": "Get raid tier application by ID",
+        "description": "Returns a single raid tier application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the raid tier application to return",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaidTierApplication"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    },
+    "/applications/raidTier/{id}/accept": {
+      "put": {
+        "tags": ["raid tier applications"],
+        "summary": "Accept raid tier application",
+        "description": "Accepts a raid tier application and updates user progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the raid tier application to accept",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raid Tier application accepted successfully"
+          },
+          "400": {
+            "description": "Application is not pending or higher raid tier already completed"
+          },
+          "404": {
+            "description": "Application or raid tier not found"
+          }
+        }
+      }
+    },
+    "/applications/raidTier/{id}/reject": {
+      "put": {
+        "tags": ["raid tier applications"],
+        "summary": "Reject raid tier application",
+        "description": "Rejects a raid tier application",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the raid tier application to reject",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Raid Tier application rejected successfully"
+          },
+          "400": {
+            "description": "Application is not pending"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -621,6 +798,64 @@
           },
           "time_split": {
             "type": "string"
+          },
+          "proof": {
+            "type": "string"
+          }
+        }
+      },
+      "RaidTierApplication": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "runescape_name": {
+            "type": "string"
+          },
+          "proof": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Pending", "Accepted", "Rejected"]
+          },
+          "target_raid_tier_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "verdict_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NewRaidTierApplication": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "target_raid_tier_id"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "target_raid_tier_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "proof": {
             "type": "string"

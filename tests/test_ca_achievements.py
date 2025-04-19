@@ -303,7 +303,7 @@ def test_apply_multiple_tiers(test_user):
 
     # Attempt to apply for elite again
     response = client.post("/applications/diary", json=elite_application)
-    assert response.status_code == 430  # Should fail since elite is already completed
+    assert response.status_code == 400  # Should fail since elite is already completed
 
     # Apply for grandmaster (gm)
     gm_application = {
@@ -325,11 +325,11 @@ def test_apply_multiple_tiers(test_user):
 
     # Attempt to apply for elite again
     response = client.post("/applications/diary", json=elite_application)
-    assert response.status_code == 430  # Should fail since gm is already completed
+    assert response.status_code == 400  # Should fail since gm is already completed
 
     # Attempt to apply for master again
     response = client.post("/applications/diary", json=master_application)
-    assert response.status_code == 430  # Should fail since gm is already completed
+    assert response.status_code == 400  # Should fail since gm is already completed
 
 def test_apply_master_then_gm_then_elite(test_user):
     client = app.test_client()
