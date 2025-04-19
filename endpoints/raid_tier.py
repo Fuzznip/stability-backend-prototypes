@@ -13,7 +13,7 @@ def get_raid_tiers():
     else:
         tiers = RaidTiers.query.all()
     data = [tier.serialize() for tier in tiers]
-    return json.dumps(data, cls=ModelEncoder)
+    return data
 
 @app.route("/raidTier", methods=['POST'])
 def create_raid_tier():
