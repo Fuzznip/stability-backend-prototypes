@@ -1,0 +1,271 @@
+{
+  "paths": {
+    "/raidTier": {
+      "get": {
+        "tags": ["raid tier"],
+        "summary": "Get all raid tiers",
+        "description": "Returns a list of all raid tiers with optional content filter",
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "description": "Filter entries by content names, i.e.: cox, tob",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RaidTier"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "54fdf8b8dbbe4ff5b089b7aea871f48f",
+                    "tier_name": "Cox",
+                    "tier_order": "1",
+                    "tier_icon": "icon",
+                    "tier_color": "blue",
+                    "tier_description": "Complete All Chambers of Xeric Master Combat Achievements",
+                    "tier_requirements": "All Cox Master CA's",
+                    "tier_points": 0
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["raid tier"],
+        "summary": "Create a new raid tier",
+        "description": "Creates a new raid tier",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRaidTier"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Raid Tier created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaidTier"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or raid tier already exists"
+          }
+        }
+      }
+    },
+    "/raidTier/{id}": {
+      "get": {
+        "tags": ["raid tier"],
+        "summary": "Get raid tier by ID",
+        "description": "Returns a single raid tier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the raid tier to return",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaidTier"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Raid Tier not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["raid tier"],
+        "summary": "Update a raid_tier",
+        "description": "Updates an existing raid tier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the raid tier to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRaidTier"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Raid Tier updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RaidTier"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Raid Tier not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["raid tier"],
+        "summary": "Delete a raid_tier",
+        "description": "Deletes an existing raid_tier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of the raid tier to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raid Tier deleted successfully"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RaidTier": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "54fdf8b8dbbe4ff5b089b7aea871f48f"
+          },
+          "tier_name": {
+            "type": "string",
+            "example": "cox"
+          },
+          "tier_order": {
+            "type": "integer",
+            "example": 1
+          },
+          "tier_icon": {
+            "type": "string",
+            "nullable": true,
+            "example": "icon"
+          },
+          "tier_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "blue"
+          },
+          "tier_description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Complete all Chambers of Xeric Master Combat Achievements"
+          },
+          "tier_requirements": {
+            "type": "string",
+            "nullable": true,
+            "example": "Complete all Chambers of Xeric Master Combat Achievements"
+          },
+          "tier_points": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      },
+      "NewRaidTier": {
+        "type": "object",
+        "required": [
+          "tier_name",
+          "tier_order",
+          "tier_points"
+        ],
+        "properties": {
+          "tier_name": {
+            "type": "string",
+            "example": "cox"
+          },
+          "tier_order": {
+            "type": "integer",
+            "example": 1
+          },
+          "tier_icon": {
+            "type": "string",
+            "nullable": true,
+            "example": "icon"
+          },
+          "tier_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "blue"
+          },
+          "tier_description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Complete all Chambers of Xeric Master Combat Achievements"
+          },
+          "tier_requirements": {
+            "type": "string",
+            "nullable": true,
+            "example": "Complete all Chambers of Xeric Master Combat Achievements"
+          },
+          "tier_points": {
+            "type": "integer",
+            "example": 0
+          }
+        }
+      }
+    }
+  }
+}

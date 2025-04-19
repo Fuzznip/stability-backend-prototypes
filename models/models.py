@@ -25,6 +25,7 @@ class Users(db.Model, Serializer):
     event_points = db.Column(db.Numeric, default=0)
     time_points = db.Column(db.Numeric, default=0)
     split_points = db.Column(db.Numeric, default=0)
+    raid_tier_points = db.Column(db.Numeric, default=0)
     settings = db.Column(JSONB, default={})
 
     def serialize(self):
@@ -89,6 +90,7 @@ class ClanRanks(db.Model, Serializer):
 
 class RaidTiers(db.Model, Serializer):
     __tablename__ = 'raid_tiers'
+    __table_args__ = (db.UniqueConstraint('tier_name', 'tier_order'),)
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tier_name = db.Column(db.String, nullable=False)
     tier_order = db.Column(db.Integer, nullable=False)
@@ -241,6 +243,38 @@ class ClanPointsLog(db.Model, Serializer):
     user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
     points = db.Column(db.Numeric, nullable=False)
     tag = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+
+    def serialize(self):
+        return Serializer.serialize(self)
+
+
+class RaidTierApplication(db.Model, Serializer):
+    __tablename__ = 'raid_tier_application'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
+    runescape_name = db.Column(db.String, nullable=False)
+    proof = db.Column(db.String)
+    status = db.Column(db.String, default='Pending')
+    target_raid_tier_id = db.Column(UUID(as_uuid=True),
+                                    db.ForeignKey('raid_tiers.id', ondelete="CASCADE"))  # Cascade delete
+    verdict_reason = db.Column(db.Text)
+    verdict_timestamp = db.Column(db.DateTime)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+
+    def serialize(self):
+        return Serializer.serialize(self)
+
+
+class RaidTierLog(db.Model, Serializer):
+    __tablename__ = 'raid_tier_log'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(db.String, db.ForeignKey('users.discord_id', ondelete="CASCADE"))  # Cascade delete
+    tier_name = db.Column(db.String, nullable=False)
+    tier_order = db.Column(db.Integer, nullable=False)
+    tier_points = db.Column(db.Integer, nullable=False)
+    target_raid_tier_id = db.Column(UUID(as_uuid=True),
+                                    db.ForeignKey('raid_tiers.id', ondelete="CASCADE"))  # Cascade delete
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
 
     def serialize(self):
