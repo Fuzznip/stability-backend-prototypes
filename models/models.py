@@ -99,6 +99,7 @@ class RaidTiers(db.Model, Serializer):
     tier_description = db.Column(db.Text)
     tier_requirements = db.Column(db.Text)
     tier_points = db.Column(db.Integer, nullable=False)
+    tier_role_name = db.Column(db.String, nullable=False)
 
     def serialize(self):
         return Serializer.serialize(self)
