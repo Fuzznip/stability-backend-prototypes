@@ -1,7 +1,7 @@
 from app import app, db
 from helper.helpers import ModelEncoder
 from helper.time_utils import parse_time_to_seconds
-from helper.set_discord_role import add_discord_role, remove_discord_role
+from helper.set_discord_role import *
 from flask import request
 from models.models import ClanApplications, Users, RaidTierApplication, RaidTiers, RaidTierLog
 from models.models import DiaryApplications, DiaryTasks, ClanPointsLog, DiaryCompletionLog
@@ -43,8 +43,7 @@ def create_application():
                 application.verdict_reason = None
                 db.session.commit()
                 add_discord_role(user, "Applied")
-                remove_discord_role(user, "Guest")
-                remove_discord_role(user, "Applicant")
+                remove_discord_roles(user, ["Guest", "Applicant"])
                 return "Application status updated to pending", 200
         elif application.status == "Rejected":
             if (datetime.datetime.now(datetime.timezone.utc) - application.verdict_timestamp).days < 30:
@@ -70,8 +69,7 @@ def create_application():
 
     db.session.commit()
     add_discord_role(user, "Applied")
-    remove_discord_role(user, "Guest")
-    remove_discord_role(user, "Applicant")
+    remove_discord_roles(user, ["Guest", "Applicant"])
     return json.dumps(data.serialize(), cls=ModelEncoder)
 
 @app.route("/applications/<id>", methods=['GET'])
@@ -116,11 +114,8 @@ def accept_application(id):
 
     user = Users.query.filter_by(discord_id=application.user_id).first()
     user.rank = "Trialist"
-    add_discord_role(user, "Trialist")
-    add_discord_role(user, "Member")
-    remove_discord_role(user, "Guest")
-    remove_discord_role(user, "Applied")
-    remove_discord_role(user, "Applicant")
+    add_discord_roles(user, ["Trialist", "Member"])
+    remove_discord_roles(user, ["Guest", "Applied", "Applicant"])
     user.is_member = True
     user.join_date = datetime.datetime.now(datetime.timezone.utc)
 
@@ -150,8 +145,7 @@ def reject_application(id):
     user = Users.query.filter_by(discord_id=application.user_id).first()
     user.rank = "Guest"
     add_discord_role(user, "Guest")
-    remove_discord_role(user, "Applied")
-    remove_discord_role(user, "Applicant")
+    remove_discord_roles(user, ["Applied", "Applicant"])
 
     db.session.commit()
     return "Application rejected", 200
@@ -607,7 +601,6 @@ def accept_application_raid_tier(id):
         application.status = "Accepted"
         application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
         db.session.add(new_raid_log)
-        print(target_raid_tier.tier_points)
         increment_clan_points(
             user_id=user.discord_id,
             points=target_raid_tier.tier_points,
