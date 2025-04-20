@@ -588,22 +588,35 @@ def accept_application_raid_tier(id):
             return "Already completed higher tier", 400
         application.status = "Accepted"
         application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
-        current_raid_tier_points = current_raid_tier_progress[0].tier_points
-        point_difference = target_raid_tier.tier_points - current_raid_tier_points
+        # for each raid tier between the current completed and the target tier, add each tier points to the user
+        total_points = 0
+        for i in range(current_raid_tier_progress[0].tier_order + 1, target_raid_tier.tier_order + 1):
+            tier = RaidTiers.query.filter_by(tier_order=i, tier_name=target_raid_tier.tier_name).first()
+            if tier is not None:
+                total_points += tier.tier_points
+
+        new_raid_log.tier_points = total_points
         db.session.add(new_raid_log)
         increment_clan_points(
             user_id=user.discord_id,
-            points=point_difference,
+            points=total_points,
             tag=PointTag.RAID_TIER,
             message=f"Raid Tier: {target_raid_tier.tier_name} {target_raid_tier.tier_order}"
         )
     else:
         application.status = "Accepted"
         application.verdict_timestamp = datetime.datetime.now(datetime.timezone.utc)
+        # add every raid tier points up to the target tier
+        total_points = 0
+        for i in range(0, target_raid_tier.tier_order + 1):
+            tier = RaidTiers.query.filter_by(tier_order=i, tier_name=target_raid_tier.tier_name).first()
+            if tier is not None:
+                total_points += tier.tier_points
+        new_raid_log.tier_points = total_points
         db.session.add(new_raid_log)
         increment_clan_points(
             user_id=user.discord_id,
-            points=target_raid_tier.tier_points,
+            points=total_points,
             tag=PointTag.RAID_TIER,
             message=f"Raid Tier: {target_raid_tier.tier_name} {target_raid_tier.tier_order}"
         )
