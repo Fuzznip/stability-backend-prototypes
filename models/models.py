@@ -309,10 +309,10 @@ class EventTeams(db.Model, Serializer):
     __tablename__ = 'event_teams'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_id = db.Column(UUID(as_uuid=True), db.ForeignKey('events.id', ondelete="CASCADE"))  # Cascade delete
-    team_name = db.Column(db.String, nullable=False)
-    team_image = db.Column(db.String)
-    team_captain = db.Column(db.String)
-    team_members = db.Column(ARRAY(db.String)) # Should include the captain
+    name = db.Column(db.String, nullable=False)
+    image = db.Column(db.String)
+    captain = db.Column(db.String)
+    members = db.Column(ARRAY(db.String)) # Should include the captain
     data = db.Column(JSONB, default={})
 
     def serialize(self):

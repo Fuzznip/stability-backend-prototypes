@@ -31,8 +31,6 @@ def submit_event():
     data = request.get_json()
     if data is None:
         return "No JSON received", 400
-    # log out the json so we can see whats being sent
-    print(f"Received event data: {data}")
 
     # Convert the incoming data to an EventSubmission object
     event_submission = EventSubmission(

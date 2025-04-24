@@ -1,4 +1,4 @@
-from event_handlers.event_handler import EventSubmission, NotificationResponse, NotificationAuthor, NotificationField
+from event_handlers.event_handler import EventSubmission, NotificationResponse, NotificationAuthor
 from models.models import Events
 import random
 
@@ -25,7 +25,7 @@ def gnome_child_bone_handler(data: EventSubmission) -> NotificationResponse:
             threadId=event.thread_id,
             title=f"The Child has been Slain.",
             color=0xFF5733,  # Example color in hex format
-            thumbnailImage="https://i1.sndcdn.com/avatars-000148601713-brf0bg-t1080x1080.jpg",
+            thumbnailImage="https://i.imgur.com/3UzSw0Q.png",
             author=NotificationAuthor(name=f"{data.rsn}"),
             description=random.choice(description_phrases)
         )
