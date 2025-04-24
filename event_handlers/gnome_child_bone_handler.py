@@ -1,4 +1,5 @@
 from event_handlers.event_handler import EventSubmission, NotificationResponse, NotificationAuthor, NotificationField
+from models.models import Events
 import random
 
 description_phrases = [
@@ -15,10 +16,13 @@ description_phrases = [
 ]
 
 def gnome_child_bone_handler(data: EventSubmission) -> NotificationResponse:
+    # Grab the 'Dink Testing' event
+    event = Events.query.filter(Events.name=='Dink Testing').first()
+
     # Example logic for handling the event
     if data.trigger.lower() == "bones" and data.source.lower() == "gnome child":
         return NotificationResponse(
-            threadId="1365017432057581808",
+            threadId=event.thread_id,
             title=f"The Child has been Slain.",
             color=0xFF5733,  # Example color in hex format
             thumbnailImage="https://i1.sndcdn.com/avatars-000148601713-brf0bg-t1080x1080.jpg",

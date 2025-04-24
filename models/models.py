@@ -295,3 +295,55 @@ class Events(db.Model, Serializer):
 
     def serialize(self):
         return Serializer.serialize(self)
+    
+class EventTriggerMappings(db.Model, Serializer):
+    __tablename__ = 'event_trigger_mappings'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = db.Column(UUID(as_uuid=True), db.ForeignKey('events.id', ondelete="CASCADE"), nullable=False)
+    trigger_id = db.Column(UUID(as_uuid=True), db.ForeignKey('event_triggers.id', ondelete="CASCADE"), nullable=False)
+
+    def serialize(self):
+        return Serializer.serialize(self)
+    
+class EventTeams(db.Model, Serializer):
+    __tablename__ = 'event_teams'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = db.Column(UUID(as_uuid=True), db.ForeignKey('events.id', ondelete="CASCADE"))  # Cascade delete
+    team_name = db.Column(db.String, nullable=False)
+    team_image = db.Column(db.String)
+    team_captain = db.Column(db.String)
+    team_members = db.Column(ARRAY(db.String)) # Should include the captain
+    data = db.Column(JSONB, default={})
+
+    def serialize(self):
+        return Serializer.serialize(self)
+    
+class EventChallenges(db.Model, Serializer):
+    __tablename__ = 'event_challenges'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    type = db.Column(db.String, nullable=False) # enum: "OR", "AND", "CUMULATIVE"
+    tasks = db.Column(ARRAY(db.String))
+    value = db.Column(db.Integer, nullable=False, default=1)
+    
+    def serialize(self):
+        return Serializer.serialize(self)
+    
+class EventTasks(db.Model, Serializer):
+    __tablename__ = 'event_tasks'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    triggers = db.Column(ARRAY(db.String))
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    value = db.Column(db.Integer, nullable=False, default=1)
+    
+    def serialize(self):
+        return Serializer.serialize(self)
+    
+class EventTriggers(db.Model, Serializer):
+    __tablename__ = 'event_triggers'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    trigger = db.Column(db.String, nullable=False)
+    source = db.Column(db.String)
+    type = db.Column(db.String, nullable=False, default="DROP") # enum: "DROP", "KC"
+    
+    def serialize(self):
+        return Serializer.serialize(self)

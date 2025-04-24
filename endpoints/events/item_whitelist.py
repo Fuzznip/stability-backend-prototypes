@@ -1,7 +1,6 @@
-from app import app, db
+from app import app
 from helper.helpers import ModelEncoder
-from models.models import Events
-from models.stability_party_3 import SP3EventTriggers
+from models.models import Events, EventTriggers, EventTriggerMappings
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -9,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 @app.route("/events/whitelist", methods=['GET'])
 def get_item_whitelist():
     data = {
-        "triggerDictionary": {},
-        "messageFilters": {}
+        "triggers": [],
+        "messageFilters": []
     }
 
     # Fetch all currently running events and events starting in the next 24 hours
@@ -20,30 +19,25 @@ def get_item_whitelist():
 
     if not running_events:
         return "No events found", 404
+    
+    event_ids = [event.id for event in running_events]
+    trigger_mappings = EventTriggerMappings.query.filter(EventTriggerMappings.event_id.in_(event_ids)).all()
+    trigger_ids = [mapping.trigger_id for mapping in trigger_mappings]
+    triggers = EventTriggers.query.filter(EventTriggers.id.in_(trigger_ids)).all()
 
-    for event in running_events:
-        # Fetch all triggers referencing the event
-        triggers = SP3EventTriggers.query.filter_by(event_id=event.id).all()
+    triggerSet = set()
+    messageFilterSet = set()
 
-        for trigger in triggers:
-            if trigger.type == "DROP":
-                # Construct the key based on trigger and source
-                key = f"{trigger.trigger}:{trigger.source}" if trigger.source else f"{trigger.trigger}"
-                
-                # Append the event thread id to the dictionary
-                if key not in data["triggerDictionary"]:
-                    data["triggerDictionary"][key] = []
-                data["triggerDictionary"][key].append(event.thread_id)
-            elif trigger.type == "KC":
-                # Construct the key based on trigger and source
-                key = f"{trigger.trigger}:{trigger.source}" if trigger.source else f"{trigger.trigger}"
-                
-                # Append the event thread id to the dictionary
-                if key not in data["messageFilters"]:
-                    data["messageFilters"][key] = []
-                data["messageFilters"][key].append(event.thread_id)
-            else:
-                logging.warning(f"Unknown trigger type: {trigger.type} for event {event.id}")
-                pass
+    for trigger in triggers:
+        if trigger.type == "DROP":
+            # Construct the key based on trigger and source
+            triggerSet.add(f"{trigger.trigger}:{trigger.source}" if trigger.source else f"{trigger.trigger}")
+        elif trigger.type == "KC":
+            messageFilterSet.add(f"{trigger.trigger}")
+        else:
+            logging.warning(f"Unknown trigger type: {trigger.type}")
+            pass
 
+    data["triggers"] = list(triggerSet)
+    data["messageFilters"] = list(messageFilterSet)
     return json.dumps(data, cls=ModelEncoder)
