@@ -1,0 +1,5 @@
+from event_handlers.event_handler import EventHandler
+from event_handlers.gnome_child_bone_handler import gnome_child_bone_handler
+
+# Register your event handlers here
+EventHandler.register_handler(gnome_child_bone_handler)

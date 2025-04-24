@@ -280,3 +280,18 @@ class RaidTierLog(db.Model, Serializer):
 
     def serialize(self):
         return Serializer.serialize(self)
+
+class Events(db.Model, Serializer):
+    __tablename__ = 'events'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.Text)
+    start_time = db.Column(db.DateTime, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String, default='Upcoming')
+    image = db.Column(db.String)
+    thread_id = db.Column(db.String)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+
+    def serialize(self):
+        return Serializer.serialize(self)
