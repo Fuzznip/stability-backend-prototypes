@@ -284,14 +284,15 @@ class RaidTierLog(db.Model, Serializer):
 class Events(db.Model, Serializer):
     __tablename__ = 'events'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    type = db.Column(db.String, nullable=False) # enum: "STABILITY_PARTY", "BINGO", "BOTW", "ROTW", "DINK_TEST"
     name = db.Column(db.String, nullable=False)
     description = db.Column(db.Text)
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
-    status = db.Column(db.String, default='Upcoming')
     image = db.Column(db.String)
     thread_id = db.Column(db.String)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
+    data = db.Column(JSONB, default={}) # Store additional data as JSONB for flexibility
 
     def serialize(self):
         return Serializer.serialize(self)
@@ -314,6 +315,16 @@ class EventTeams(db.Model, Serializer):
     captain = db.Column(db.String)
     members = db.Column(ARRAY(db.String)) # Should include the captain
     data = db.Column(JSONB, default={})
+
+    def serialize(self):
+        return Serializer.serialize(self)
+    
+class EventTeamMemberMappings(db.Model, Serializer):
+    __tablename__ = 'event_team_member_mappings'
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = db.Column(UUID(as_uuid=True), db.ForeignKey('events.id', ondelete="CASCADE"), nullable=False)
+    team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('event_teams.id', ondelete="CASCADE"), nullable=False)
+    username = db.Column(db.String)
 
     def serialize(self):
         return Serializer.serialize(self)
