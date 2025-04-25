@@ -1,9 +1,8 @@
 from app import db
 from event_handlers.event_handler import EventSubmission, NotificationResponse, NotificationAuthor
 from models.models import Events
-from helper.jsonb import load_jsonb, save_jsonb
+from helper.jsonb import update_jsonb_field
 import random
-import json
 
 description_phrases = [
     "Guys, I think dink is working.",
@@ -24,13 +23,9 @@ def gnome_child_bone_handler(data: EventSubmission) -> NotificationResponse:
 
     # Example logic for handling the event
     if data.trigger.lower() == "bones" and data.source.lower() == "gnome child":
-        event_data = load_jsonb(event.data)
-        if "kills" in event_data:
-            event_data["kills"] += 1
-        else:
-            event_data["kills"] = 1
+        # Use the helper function to modify event.data
+        update_jsonb_field(event, "data", lambda data: data.update({"kills": data.get("kills", 0) + 1}))
         
-        event.data = save_jsonb(event.data)
         db.session.commit()
             
         return NotificationResponse(

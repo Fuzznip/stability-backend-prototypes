@@ -47,7 +47,7 @@ from endpoints import users, announcements, splits, applications, diary, ranks, 
 from endpoints.events import item_whitelist, submit
 
 # Initialize event handlers
-from event_handlers import app_init
+from event_handlers import event_handler_init
 
 if __name__ == '__main__':
     app.run(debug=False)

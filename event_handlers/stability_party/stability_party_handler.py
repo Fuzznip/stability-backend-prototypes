@@ -107,26 +107,32 @@ def save_team_data(team: EventTeams, save: SaveData):
     db.session.commit()
 
 def get_team_challenges(save: SaveData) -> list[tuple[uuid.UUID, str]]:
-    challenges: set[tuple[uuid.UUID, str]] = set()
+    challenges: list[tuple[uuid.UUID, str]] = []
     teamChallenges = SP3EventTileChallengeMapping.query.filter(SP3EventTileChallengeMapping.tile_id == save.currentTile).all()
     challenge: SP3EventTileChallengeMapping
     for challenge in teamChallenges:
-        challenges.add((challenge.challenge_id, challenge.type))
+        challenges.append((challenge.challenge_id, challenge.type))
 
     return challenges
+
+def progress_coin_challenge(challenge: uuid.UUID, event: Events, save: SaveData, data: EventSubmission) -> NotificationResponse:
+    return None
+
+def progress_tile_challenge(challenge: uuid.UUID, event: Events, save: SaveData, data: EventSubmission) -> NotificationResponse:
+    return None
+
+def progress_region_challenge(challenge: uuid.UUID, event: Events, save: SaveData, data: EventSubmission) -> NotificationResponse:
+    return None
 
 def progress_team(event: Events, save: SaveData, data: EventSubmission) -> NotificationResponse:
     for challenge, type in get_team_challenges(save):
         match type:
             case "REGION":
-                progress_challenge(challenge, event, save, data)
-                pass
+                notif = progress_region_challenge(challenge, event, save, data)
             case "TILE":
-                progress_challenge(challenge, event, save, data)
-                pass
+                notif = progress_tile_challenge(challenge, event, save, data)
             case "COIN":
-                progress_challenge(challenge, event, save, data)
-                pass
+                notif = progress_coin_challenge(challenge, event, save, data)
 
 def progress_event(event: Events, data: EventSubmission) -> None:
     return None
@@ -146,7 +152,7 @@ def get_team(eventId: uuid.UUID, rsn: str) -> EventTeams:
 
 def stability_party_handler(data: EventSubmission) -> NotificationResponse:
     now = datetime.now(timezone.utc)
-    event = Events.query.filter(Events.start_time <= now).filter(Events.end_time >= now).filter(Events.type == "STABILITY_PARTY").all()
+    event = Events.query.filter(Events.start_time <= now).filter(Events.end_time >= now).filter(Events.type == "STABILITY_PARTY").first()
 
     # For now we will assume there is only one event of this type running at a time
     if event.type != "STABILITY_PARTY":

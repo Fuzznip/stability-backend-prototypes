@@ -37,7 +37,7 @@ class SP3EventTileChallengeMapping(db.Model, Serializer):
     __tablename__ = 'sp3_event_tile_challenge_mapping'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tile_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sp3_event_tiles.id', ondelete="CASCADE"))  # Cascade delete
-    challenge_id = db.Column(UUID(as_uuid=True), db.ForeignKey('challenges.id', ondelete="CASCADE"))  # Cascade delete
+    challenge_id = db.Column(UUID(as_uuid=True), db.ForeignKey('event_challenges.id', ondelete="CASCADE"))  # Cascade delete
     type = db.Column(db.String, nullable=False)  # Type of challenge (e.g., "TILE", "ISLAND", "COIN")
     data = db.Column(JSONB)  # Store challenge-specific data as JSONB for flexibility
 

@@ -1,7 +1,14 @@
-import json
+from sqlalchemy.orm.attributes import flag_modified
 
-def load_jsonb(data: str) -> dict:
-    return json.loads(data)
+def update_jsonb_field(instance, field_name, update_func):
+    """
+    Helper function to update a JSONB field and mark it as modified.
 
-def save_jsonb(data: dict) -> str:
-    return json.dumps(data, ensure_ascii=False, indent=4)
+    Args:
+        instance: The SQLAlchemy model instance containing the JSONB field.
+        field_name: The name of the JSONB field to update.
+        update_func: A function that takes the current value of the field and modifies it.
+    """
+    field_value = getattr(instance, field_name)
+    update_func(field_value)
+    flag_modified(instance, field_name)
