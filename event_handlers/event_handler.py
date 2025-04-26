@@ -89,14 +89,14 @@ class EventHandler:
             raise ValueError("Handler must be a callable function")
         if not hasattr(handler, "__annotations__"):
             raise ValueError("Handler must have type annotations")
-        if "data" not in handler.__annotations__:
+        if "submission" not in handler.__annotations__:
             raise ValueError("Handler must accept an EventSubmission object as the first argument")
         if "return" not in handler.__annotations__:
             raise ValueError("Handler must return a NotificationResponse object")
-        if handler.__annotations__["data"] != EventSubmission:
+        if handler.__annotations__["submission"] != EventSubmission:
             raise ValueError("Handler must accept an EventSubmission object as the first argument")
-        if handler.__annotations__["return"] != NotificationResponse:
-            raise ValueError("Handler must return a NotificationResponse object")
+        if handler.__annotations__["return"] != list[NotificationResponse]:
+            raise ValueError("Handler must return a list of NotificationResponse objects")
         
         # Register the handler
         cls.handlers.append(handler)
@@ -105,7 +105,7 @@ class EventHandler:
     def handle_event(cls, data: EventSubmission):
         notifications: list[NotificationResponse] = []
         for handler in cls.handlers:
-            notification: NotificationResponse = handler(data)
-            if notification:
-                notifications.append(notification.to_dict())
+            responses: list[NotificationResponse] = handler(data)
+            for notif in responses:
+                notifications.append(notif.to_dict())
         return {"notifications": notifications}

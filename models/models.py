@@ -266,7 +266,6 @@ class RaidTierApplication(db.Model, Serializer):
     def serialize(self):
         return Serializer.serialize(self)
 
-
 class RaidTierLog(db.Model, Serializer):
     __tablename__ = 'raid_tier_log'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -312,8 +311,7 @@ class EventTeams(db.Model, Serializer):
     event_id = db.Column(UUID(as_uuid=True), db.ForeignKey('events.id', ondelete="CASCADE"))  # Cascade delete
     name = db.Column(db.String, nullable=False)
     image = db.Column(db.String)
-    captain = db.Column(db.String)
-    members = db.Column(ARRAY(db.String)) # Should include the captain
+    captain = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete="CASCADE"))  # Cascade delete
     data = db.Column(JSONB, default={})
 
     def serialize(self):
@@ -332,7 +330,7 @@ class EventTeamMemberMappings(db.Model, Serializer):
 class EventChallenges(db.Model, Serializer):
     __tablename__ = 'event_challenges'
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    type = db.Column(db.String, nullable=False) # enum: "OR", "AND", "CUMULATIVE"
+    type = db.Column(db.String, nullable=False, default="OR") # enum: "OR", "AND", "CUMULATIVE"
     tasks = db.Column(ARRAY(db.String))
     value = db.Column(db.Integer, nullable=False, default=1)
     

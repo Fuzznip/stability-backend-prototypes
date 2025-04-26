@@ -25,8 +25,6 @@ class SP3EventTiles(db.Model, Serializer):
     name = db.Column(db.String, nullable=False)
     description = db.Column(db.Text)
     image = db.Column(db.String)
-    points = db.Column(db.Integer, nullable=False)
-    type = db.Column(db.String, nullable=False)
     coordinates = db.Column(JSONB)  # Store coordinates as JSONB for flexibility
     data = db.Column(JSONB)  # Store additional data as JSONB for flexibility
     
@@ -38,7 +36,7 @@ class SP3EventTileChallengeMapping(db.Model, Serializer):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tile_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sp3_event_tiles.id', ondelete="CASCADE"))  # Cascade delete
     challenge_id = db.Column(UUID(as_uuid=True), db.ForeignKey('event_challenges.id', ondelete="CASCADE"))  # Cascade delete
-    type = db.Column(db.String, nullable=False)  # Type of challenge (e.g., "TILE", "ISLAND", "COIN")
+    type = db.Column(db.String, nullable=False)  # Type of challenge (e.g., "TILE", "REGION", "COIN")
     data = db.Column(JSONB)  # Store challenge-specific data as JSONB for flexibility
 
     def serialize(self):
