@@ -1,3 +1,5 @@
+import logging
+
 class EventSubmission:
     def __init__(self, rsn: str, id: str | None, trigger: str, source: str | None, quantity: int | None, totalValue: int | None, type: str | None) -> None:
         self.rsn = rsn
@@ -100,12 +102,16 @@ class EventHandler:
         
         # Register the handler
         cls.handlers.append(handler)
+        logging.info(f"Handler {handler.__name__} registered successfully.")
 
     @classmethod
     def handle_event(cls, data: EventSubmission):
         notifications: list[NotificationResponse] = []
         for handler in cls.handlers:
             responses: list[NotificationResponse] = handler(data)
+            if not responses:
+                continue
+            
             for notif in responses:
                 notifications.append(notif.to_dict())
         return {"notifications": notifications}

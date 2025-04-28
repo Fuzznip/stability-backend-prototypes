@@ -205,7 +205,11 @@ def progress_challenge(challengeMapping: SP3EventTileChallengeMapping, event: Ev
                 return None
             
             challengeId = str(challenge.id)
-            save.tileProgress[challengeId][taskId] = save.tileProgress[challengeId].get(taskId, 0) + 1
+            if challengeId not in save.tileProgress:
+                save.tileProgress[challengeId] = {}
+            if taskId not in save.tileProgress[challengeId]:
+                save.tileProgress[challengeId][taskId] = 0
+            save.tileProgress[challengeId][taskId] = save.tileProgress.get(challengeId, {}).get(taskId, 0) + submission.quantity
 
             if save.tileProgress[challengeId][taskId] >= task.quantity:
                 if is_challenge_completed(challenge, task, save):
