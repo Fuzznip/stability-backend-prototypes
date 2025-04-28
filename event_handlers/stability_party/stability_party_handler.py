@@ -162,10 +162,10 @@ def create_tile_challenge_notification(challenge: SP3EventTileChallengeMapping, 
     tile: SP3EventTiles = SP3EventTiles.query.filter(SP3EventTiles.id == save.currentTile).first()
     region: SP3Regions = SP3Regions.query.filter(SP3Regions.id == tile.region_id).first()
     if region is None or tile is None:
-        logging.warning(f"Region or Tile not found for {challenge.region_id} or {save.currentTile}")
+        logging.error(f"Region or Tile not found for {challenge.region_id} or {save.currentTile}")
         return None
 
-    save.coins += 10
+    save.coins += 10 # TODO: Implement coin logic
     save.dice = [4] # TODO: Implement dice logic
     save.isTileCompleted = True
 
@@ -178,9 +178,9 @@ def create_tile_challenge_notification(challenge: SP3EventTileChallengeMapping, 
     return NotificationResponse(
         threadId=event.thread_id,
         title=f"{submission.rsn}: {submission.trigger} from {submission.source}",
-        description=f"For completing a tile challenge, you have earned {10} coins and a {4} sided die!",
+        description=f"For completing the tile: {tile.name}, you have earned {10} coins and a {4} sided die!",
         color=0x992D22,
-        author=NotificationAuthor(name=team.name, icon_url=team.image if team.image else None),
+        author=NotificationAuthor(name=f"{team.name}: {tile.name} ({region.name})", icon_url=team.image if team.image else None),
         fields=fields,
     )
 
