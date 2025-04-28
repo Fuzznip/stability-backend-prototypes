@@ -4,6 +4,7 @@ from helper.set_discord_role import add_discord_role, remove_discord_roles
 from flask import request
 from models.models import Users, Splits, ClanPointsLog
 from models.models import ClanApplications, RankApplications, TierApplications, DiaryApplications, TimeSplitApplications
+from models.models import EventTeamMemberMappings, EventTeams
 import json
 import logging
 from datetime import datetime, timezone
@@ -260,3 +261,97 @@ def remove_user_from_clan(id):
     db.session.commit()
     
     return json.dumps(user.serialize(), cls=ModelEncoder)
+
+@app.route("/users/<id>/add_alt", methods=['POST'])
+def add_user_alt(id):
+    data = request.get_json()
+    if data is None:
+        return "No JSON received", 400
+    
+    user: Users = Users.query.filter_by(discord_id=id).first()
+    if user is None:
+        user: Users = Users.query.filter(Users.runescape_name.ilike(id)).first()
+        if user is None:
+            return "Could not find User", 404
+        
+    if not user.is_active:
+        return "User is not active", 404
+    
+    altName = data.get("rsn", None)
+    if altName is None:
+        return "No RSN provided", 400
+    
+    if altName in user.alt_names:
+        return "Alt already added", 400
+    
+    existing_user = Users.query.filter(Users.runescape_name.ilike(altName)).first()
+    if existing_user and existing_user.discord_id != id:
+        return "Runescape name already taken", 400
+    
+    user.alt_names = user.alt_names + [altName]
+
+    # Get get list of unique team IDs for the user id
+    team_ids = db.session.query(EventTeamMemberMappings.team_id).filter_by(discord_id=id).distinct().all()
+    team_ids = [team_id[0] for team_id in team_ids]
+    for team_id in team_ids:
+        # Get the event id from the team id
+        team: EventTeams = db.session.query(EventTeams.event_id).filter_by(id=team_id).first()
+        # Add the alt to the event team member mapping
+        new_mapping = EventTeamMemberMappings(
+            event_id=team.event_id,
+            team_id=team_id,
+            username=altName,
+            discord_id=id,
+        )
+        db.session.add(new_mapping)
+
+    db.session.commit()
+    
+    return json.dumps(user.serialize(), cls=ModelEncoder)
+
+@app.route("/users/<id>/remove_alt", methods=['DELETE'])
+def remove_user_alt(id):
+    data = request.get_json()
+    if data is None:
+        return "No JSON received", 400
+    
+    user: Users = Users.query.filter_by(discord_id=id).first()
+    if user is None:
+        user: Users = Users.query.filter(Users.runescape_name.ilike(id)).first()
+        if user is None:
+            return "Could not find User", 404
+        
+    if not user.is_active:
+        return "User is not active", 404
+    
+    altName = data.get("rsn", None)
+    if altName is None:
+        return "No RSN provided", 400
+    
+    #check if alt name exists
+    if altName not in user.alt_names:
+        return "Alt not found", 400
+    
+    user.alt_names = [name for name in user.alt_names if name != altName]
+    # Remove the alt from any event team member mappings
+    EventTeamMemberMappings.query.filter_by(username=altName).delete()
+
+    db.session.commit()
+    
+    return json.dumps(user.serialize(), cls=ModelEncoder)
+
+@app.route("/users/<id>/accounts", methods=['GET'])
+def get_user_accounts(id):
+    user = Users.query.filter_by(discord_id=id).first()
+    if user is None:
+        user = Users.query.filter(Users.runescape_name.ilike(id)).first()
+        if user is None:
+            return "Could not find User", 404
+    
+    if not user.is_active:
+        return "Could not find User", 404
+    
+    data = [user.runescape_name]
+    for row in user.alt_names:
+        data.append(row)
+    return json.dumps(data, cls=ModelEncoder)

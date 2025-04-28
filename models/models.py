@@ -323,6 +323,7 @@ class EventTeamMemberMappings(db.Model, Serializer):
     event_id = db.Column(UUID(as_uuid=True), db.ForeignKey('events.id', ondelete="CASCADE"), nullable=False)
     team_id = db.Column(UUID(as_uuid=True), db.ForeignKey('event_teams.id', ondelete="CASCADE"), nullable=False)
     username = db.Column(db.String)
+    discord_id = db.Column(db.String)
 
     def serialize(self):
         return Serializer.serialize(self)
