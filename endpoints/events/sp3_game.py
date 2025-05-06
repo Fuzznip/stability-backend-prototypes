@@ -4,29 +4,36 @@ from models.models import Events, EventTeams, EventTeamMemberMappings
 from models.stability_party_3 import SP3Regions, SP3EventTiles
 from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data
 from sqlalchemy.orm.attributes import flag_modified
-import uuid
 import logging
-import os
+import json
 from datetime import datetime, timezone
 from helper.helpers import ModelEncoder
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 @app.route("/events/<event_id>/teams/<team_id>/stats", methods=['GET'])
 def get_team_stats(event_id, team_id):
     """Get the current stats for a team"""
     try:
+        logging.info(f"Getting stats for team {team_id} in event {event_id}")
+        
         # Check if event exists and is a SP3 event
         event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
         if not event:
+            logging.warning(f"Event {event_id} not found or not a Stability Party event")
             return jsonify({"error": "Event not found or not a Stability Party event"}), 404
         
         # Check if team exists and belongs to this event
-        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
-        if not team:
+        team: EventTeams = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
+        if team is None:
+            logging.warning(f"Team {team_id} not found or does not belong to event {event_id}")
             return jsonify({"error": "Team not found or does not belong to this event"}), 404
         
+        logging.debug(f"Found team {team.name} (ID: {team_id})")
+        
         # Get team members
-        members = EventTeamMemberMappings.query.filter_by(event_id=event_id, team_id=team_id).all()
+        members: EventTeamMemberMappings = EventTeamMemberMappings.query.filter_by(event_id=event_id, team_id=team_id).all()
+        logging.debug(f"Found {len(members)} team members")
         member_names = [member.username for member in members]
         
         # Get team stats
@@ -34,18 +41,21 @@ def get_team_stats(event_id, team_id):
         
         # Find the current tile information
         current_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            tile_number=save.currentTile
+            id=save.currentTile,
+            event_id=event_id
         ).first()
         
         tile_info = None
         if current_tile:
+            logging.debug(f"Current tile: {current_tile.name} (Type: {current_tile.type})")
             tile_info = {
                 "id": str(current_tile.id),
                 "type": current_tile.type,
                 "name": current_tile.name,
                 "description": current_tile.description
             }
+        else:
+            logging.warning(f"Current tile information not found for tile {save.currentTile}")
         
         # Find the current island/region information
         current_region = SP3Regions.query.filter_by(
@@ -55,11 +65,14 @@ def get_team_stats(event_id, team_id):
         
         region_info = None
         if current_region:
+            logging.debug(f"Current region: {current_region.name}")
             region_info = {
                 "id": str(current_region.id),
                 "name": current_region.name,
                 "description": current_region.description
             }
+        else:
+            logging.warning(f"Current region information not found for island ID {save.islandId}")
         
         stats = {
             "team_name": team.name,
@@ -81,9 +94,10 @@ def get_team_stats(event_id, team_id):
             "current_challenge": save.currentChallenge
         }
         
+        logging.info(f"Successfully retrieved stats for team {team.name} (ID: {team_id})")
         return jsonify(stats), 200
     except Exception as e:
-        logging.error(f"Error getting team stats: {str(e)}")
+        logging.error(f"Error getting team stats: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
@@ -216,6 +230,31 @@ def get_event_progress(event_id):
         return jsonify(response), 200
     except Exception as e:
         logging.error(f"Error getting event progress: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/events/<event_id>/teams/getTeam/<discord_id>", methods=['GET'])
+def get_team_by_discord_id(event_id, discord_id):
+    """Get the team associated with a Discord ID"""
+    try:
+        # Check if event exists and is a SP3 event
+        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
+        if not event:
+            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
+        
+        # Check if team exists and belongs to this event
+        team_mapping = EventTeamMemberMappings.query.filter_by(event_id=event_id, discord_id=discord_id).first()
+        if not team_mapping:
+            return jsonify({"error": "No team found for this Discord ID"}), 404
+        
+        # Get the team details
+        team = EventTeams.query.filter_by(id=team_mapping.team_id, event_id=event_id).first()
+        if not team:
+            return jsonify({"error": "Team not found for this event"}), 404
+        
+        return json.dumps(team.serialize(), cls=ModelEncoder), 200
+    except Exception as e:
+        logging.error(f"Error getting team by Discord ID: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 

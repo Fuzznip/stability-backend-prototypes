@@ -295,15 +295,18 @@ def add_user_alt(id):
     team_ids = [team_id[0] for team_id in team_ids]
     for team_id in team_ids:
         # Get the event id from the team id
-        team: EventTeams = db.session.query(EventTeams.event_id).filter_by(id=team_id).first()
-        # Add the alt to the event team member mapping
-        new_mapping = EventTeamMemberMappings(
-            event_id=team.event_id,
-            team_id=team_id,
-            username=altName,
-            discord_id=id,
-        )
-        db.session.add(new_mapping)
+        event_row = db.session.query(EventTeams.event_id).filter_by(id=team_id).first()
+        if event_row:
+            # Extract the UUID from the Row object
+            event_id = event_row[0]
+            # Add the alt to the event team member mapping
+            new_mapping = EventTeamMemberMappings(
+                event_id=event_id,
+                team_id=team_id,
+                username=altName,
+                discord_id=id,
+            )
+            db.session.add(new_mapping)
 
     db.session.commit()
     

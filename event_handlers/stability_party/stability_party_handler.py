@@ -26,6 +26,14 @@ class Equipment:
 
     @staticmethod
     def from_dict(data: dict) -> "Equipment":
+        if not data:
+            data = {
+                "helmet": "",
+                "armor": "",
+                "weapon": "",
+                "jewelry": "",
+                "cape": ""
+            }
         equipment = Equipment()
         equipment.helmet = data.get("helmet", "")
         equipment.armor = data.get("armor", "")
@@ -37,8 +45,8 @@ class Equipment:
 class SaveData:
     team: EventTeams
 
-    previousTile: int
-    currentTile: int
+    previousTile: uuid.UUID
+    currentTile: uuid.UUID
     stars: int
     coins: int
     islandId: int
@@ -87,13 +95,13 @@ class SaveData:
     @staticmethod
     def from_dict(data: dict) -> "SaveData":
         save_data = SaveData()
-        save_data.previousTile = data.get("previousTile", 0)
-        save_data.currentTile = data.get("currentTile", 0)
+        save_data.previousTile = uuid.UUID(data["previousTile"]) if data.get("previousTile") else None
+        save_data.currentTile = uuid.UUID(data["currentTile"]) if data.get("currentTile") else None
         save_data.stars = data.get("stars", 0)
         save_data.coins = data.get("coins", 0)
         save_data.islandId = data.get("islandId", 0)
         save_data.itemList = data.get("itemList", [])
-        save_data.equipment = Equipment.from_dict(data.get("equipment", {}))
+        save_data.equipment = Equipment.from_dict(data.get("equipment", {}) if "equipment" in data else {})
         save_data.dice = data.get("dice", [])
         save_data.modifier = data.get("modifier", 0)
         save_data.isTileCompleted = data.get("isTileCompleted", False)

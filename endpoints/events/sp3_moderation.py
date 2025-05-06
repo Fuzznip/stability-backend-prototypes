@@ -8,6 +8,7 @@ from helper.discord_helper import create_discord_role, create_discord_text_chann
 from helper.set_discord_role import add_discord_role
 import uuid
 import logging
+import json
 import os
 from datetime import datetime, timezone
 from helper.helpers import ModelEncoder
@@ -163,6 +164,41 @@ def rename_team(event_id, team_id):
         logging.error(f"Error renaming team: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+
+@app.route("/events/<event_id>/moderation/teams/<team_id>/members", methods=['GET'])
+def get_team_members(event_id, team_id):
+    """Get members of a team"""
+    try:
+        # Check if event exists and is a SP3 event
+        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
+        if not event:
+            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
+        
+        # Check if team exists and belongs to this event
+        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
+        if not team:
+            return jsonify({"error": "Team not found or does not belong to this event"}), 404
+        
+        # Get members of the team
+        members = EventTeamMemberMappings.query.filter_by(team_id=team_id).all()
+        
+        # Filter members to only include those that match entries in the Users table
+        valid_members = []
+        for member in members:
+            # Check if there's a matching user in the Users table
+            user = Users.query.filter_by(discord_id=member.discord_id).first()
+            if user and (user.runescape_name == member.username):
+                valid_members.append({
+                    "member_id": str(member.id),
+                    "username": member.username,
+                    "discord_id": member.discord_id
+                })
+        
+        return json.dumps(valid_members, cls=ModelEncoder), 200
+    except Exception as e:
+        logging.error(f"Error getting team members: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/events/<event_id>/moderation/teams/<team_id>/members", methods=['POST'])
 def add_player_to_team(event_id, team_id):
     """Add a player to a team"""
@@ -212,7 +248,7 @@ def add_player_to_team(event_id, team_id):
                 is_member=False,
                 rank="Guest",
                 is_active=True,
-                join_date=datetime.now(timezone.utc),
+                join_date=None,
                 timestamp=datetime.now(timezone.utc)
             )
             db.session.add(user)
@@ -229,7 +265,11 @@ def add_player_to_team(event_id, team_id):
         db.session.add(member)
 
         # Add alts to the team if they exist
+        print(f"Adding alt names for user {user.runescape_name}: {user.alt_names}")
         for alt_username in user.alt_names:
+            if alt_username is None or alt_username == "":
+                continue
+
             alt_member = EventTeamMemberMappings(
                 event_id=event_id,
                 team_id=team_id,
@@ -255,7 +295,6 @@ def add_player_to_team(event_id, team_id):
         logging.error(f"Error adding player to team: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/events/<event_id>/moderation/teams/<team_id>/members/<member_id>", methods=['DELETE'])
 def remove_player_from_team(event_id, team_id, member_id):
     """Remove a player from a team"""
@@ -271,12 +310,15 @@ def remove_player_from_team(event_id, team_id, member_id):
             return jsonify({"error": "Team not found or does not belong to this event"}), 404
         
         # Check if member exists and belongs to the team
-        member = EventTeamMemberMappings.query.get(EventTeamMemberMappings.discord_id == member_id).all()
-        for m in member:
+        members = EventTeamMemberMappings.query.filter_by(discord_id=member_id).all()
+        if not members:
+            return jsonify({"error": "Member not found"}), 404
+            
+        for m in members:
             if str(m.team_id) != team_id or str(m.event_id) != event_id:
-                return jsonify({"error": "Member not found or not part of this team"}), 404
+                continue
             # Remove player from team
-            db.session.delete(member)
+            db.session.delete(m)
 
         db.session.commit()
         
@@ -285,7 +327,6 @@ def remove_player_from_team(event_id, team_id, member_id):
         db.session.rollback()
         logging.error(f"Error removing player from team: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/events/<event_id>/moderation/teams/<team_id>/members/<member_id>/usernames", methods=['POST'])
 def add_associated_username(event_id, team_id, member_id):
@@ -308,7 +349,7 @@ def add_associated_username(event_id, team_id, member_id):
             return jsonify({"error": "Team not found or does not belong to this event"}), 404
         
         # Check if member exists and belongs to the team
-        member = EventTeamMemberMappings.query.get(member_id)
+        member = EventTeamMemberMappings.query.filter_by(id=member_id).first()
         if not member or str(member.team_id) != team_id or str(member.event_id) != event_id:
             return jsonify({"error": "Member not found or not part of this team"}), 404
         
@@ -333,12 +374,10 @@ def add_associated_username(event_id, team_id, member_id):
         logging.error(f"Error adding associated username: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/events/<event_id>/moderation/teams/<team_id>/members/<member_id>/usernames", methods=['DELETE'])
 def remove_associated_username(event_id, team_id, member_id):
     """Remove an associated username from a player"""
     return remove_player_from_team(event_id, team_id, member_id)
-
 
 @app.route("/events/<event_id>/moderation/teams/<team_id>/complete-tile", methods=['POST'])
 def force_complete_tile(event_id, team_id):
