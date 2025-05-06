@@ -11,6 +11,30 @@ from helper.helpers import ModelEncoder
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+@app.route("/events/<event_id>/users/<discord_id>/team", methods=['GET'])
+def get_user_team(event_id, discord_id):
+    """Get the team associated with a Discord ID"""
+    try:
+        # Check if event exists and is a SP3 event
+        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
+        if not event:
+            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
+        
+        # Check if team exists and belongs to this event
+        team_mapping = EventTeamMemberMappings.query.filter_by(event_id=event_id, discord_id=discord_id).first()
+        if not team_mapping:
+            return jsonify({"error": "No team found for this Discord ID"}), 404
+        
+        # Get the team details
+        team = EventTeams.query.filter_by(id=team_mapping.team_id, event_id=event_id).first()
+        if not team:
+            return jsonify({"error": "Team not found for this event"}), 404
+        
+        return json.dumps(team.serialize(), cls=ModelEncoder), 200
+    except Exception as e:
+        logging.error(f"Error getting user team: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/events/<event_id>/teams/<team_id>/stats", methods=['GET'])
 def get_team_stats(event_id, team_id):
     """Get the current stats for a team"""
