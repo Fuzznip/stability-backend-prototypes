@@ -2,7 +2,7 @@ from app import app, db
 from flask import request, jsonify
 from models.models import Events, EventTeams, EventTeamMemberMappings
 from models.stability_party_3 import SP3Regions, SP3EventTiles
-from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data
+from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data, is_shop_tile, is_star_tile, is_dock_tile
 from sqlalchemy.orm.attributes import flag_modified
 import logging
 import json
@@ -71,10 +71,9 @@ def get_team_stats(event_id, team_id):
         
         tile_info = None
         if current_tile:
-            logging.debug(f"Current tile: {current_tile.name} (Type: {current_tile.type})")
+            logging.debug(f"Current tile: {current_tile.name}")
             tile_info = {
                 "id": str(current_tile.id),
-                "type": current_tile.type,
                 "name": current_tile.name,
                 "description": current_tile.description
             }
@@ -124,7 +123,6 @@ def get_team_stats(event_id, team_id):
         logging.error(f"Error getting team stats: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/events/<event_id>/teams/<team_id>/tile-progress", methods=['GET'])
 def get_team_tile_progress(event_id, team_id):
     """Get the current tile progress for a team"""
@@ -144,22 +142,22 @@ def get_team_tile_progress(event_id, team_id):
         
         # Get current tile information
         current_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            tile_number=save.currentTile
+            event_id=event_id,
+            id=save.currentTile
         ).first()
-        
-        if not current_tile:
-            return jsonify({"error": "Current tile information not found"}), 404
-        
+
         # Get progress for the current tile
-        current_tile_id = str(save.currentTile)
-        tile_progress = save.tileProgress.get(current_tile_id, {})
+        if save.currentTile:
+            current_tile_id = str(save.currentTile)
+            tile_progress = save.tileProgress.get(current_tile_id, {})
+        else:
+            tile_progress = {}
         
         response = {
-            "tile_number": save.currentTile,
-            "tile_type": current_tile.type,
-            "tile_name": current_tile.name,
-            "tile_description": current_tile.description,
+            "tile_id": save.currentTile,
+            "tile_region": save.islandId,
+            "tile_name": current_tile.name if current_tile else "Unknown",
+            "tile_description": current_tile.description if current_tile else "Unknown",
             "is_completed": save.isTileCompleted,
             "progress": tile_progress,
             "can_roll": save.isTileCompleted and not save.isRolling
@@ -169,7 +167,6 @@ def get_team_tile_progress(event_id, team_id):
     except Exception as e:
         logging.error(f"Error getting tile progress: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/events/<event_id>/progress", methods=['GET'])
 def get_event_progress(event_id):
@@ -209,7 +206,6 @@ def get_event_progress(event_id):
             ).first()
             
             region_name = current_region.name if current_region else "Unknown"
-            tile_type = current_tile.type if current_tile else "Unknown"
             
             standings.append({
                 "team_id": str(team.id),
@@ -218,7 +214,6 @@ def get_event_progress(event_id):
                 "coins": save.coins,
                 "current_tile": save.currentTile,
                 "current_region": region_name,
-                "current_tile_type": tile_type,
                 "tile_completed": save.isTileCompleted
             })
         
@@ -256,361 +251,177 @@ def get_event_progress(event_id):
         logging.error(f"Error getting event progress: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+class RollProgressionPayload():
+    eventId: str
+    teamId: str
 
-@app.route("/events/<event_id>/teams/getTeam/<discord_id>", methods=['GET'])
-def get_team_by_discord_id(event_id, discord_id):
-    """Get the team associated with a Discord ID"""
-    try:
-        # Check if event exists and is a SP3 event
-        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
-        if not event:
-            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
-        
-        # Check if team exists and belongs to this event
-        team_mapping = EventTeamMemberMappings.query.filter_by(event_id=event_id, discord_id=discord_id).first()
-        if not team_mapping:
-            return jsonify({"error": "No team found for this Discord ID"}), 404
-        
-        # Get the team details
-        team = EventTeams.query.filter_by(id=team_mapping.team_id, event_id=event_id).first()
-        if not team:
-            return jsonify({"error": "Team not found for this event"}), 404
-        
-        return json.dumps(team.serialize(), cls=ModelEncoder), 200
-    except Exception as e:
-        logging.error(f"Error getting team by Discord ID: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    startingTileId: str
+    currentTileId: str
 
+    rollDistanceTotal: int
+    rollDistanceRemaining: int
+
+    data: dict
 
 @app.route("/events/<event_id>/teams/<team_id>/roll", methods=['POST'])
 def roll_dice(event_id, team_id):
-    """Roll dice to move forward on the board"""
+    """Start a new dice roll or continue an existing roll progression"""
     try:
-        # Check if event exists and is a SP3 event
-        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
-        if not event:
-            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
+        # Get data from request (optional)
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
         
-        # Check if team exists and belongs to this event
-        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
-        if not team:
-            return jsonify({"error": "Team not found or does not belong to this event"}), 404
+        # Process the roll using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression
+        response, status_code = roll_dice_progression(event_id, team_id, data)
         
-        # Load team data
-        save = SaveData.from_dict(team.data)
-        
-        # Check if the current tile is completed
-        if not save.isTileCompleted:
-            return jsonify({"error": "Current tile must be completed before rolling"}), 400
-        
-        # Check if the team is already rolling
-        if save.isRolling:
-            return jsonify({"error": "Team is already in the process of rolling"}), 400
-        
-        # Get dice roll data from request (optional)
-        data = request.get_json() or {}
-        custom_roll = data.get("custom_roll", None)
-        modifier = data.get("modifier", 0)
-        
-        # Generate random dice roll if not provided
-        import random
-        dice_count = data.get("dice_count", 2)  # Default to 2 dice
-        dice_results = []
-        
-        if custom_roll is not None:
-            dice_results = [int(custom_roll)]
-        else:
-            for _ in range(dice_count):
-                dice_results.append(random.randint(1, 6))
-        
-        # Calculate total movement
-        roll_total = sum(dice_results) + int(modifier)
-        
-        # Store previous tile and update current tile
-        save.previousTile = save.currentTile
-        save.currentTile = save.currentTile + roll_total
-        
-        # Update team state
-        save.dice = dice_results
-        save.modifier = modifier
-        save.isRolling = True
-        save.isTileCompleted = False  # New tile needs to be completed
-        
-        # Get the new tile information
-        new_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            tile_number=save.currentTile
-        ).first()
-        
-        new_tile_info = None
-        if new_tile:
-            new_tile_info = {
-                "id": str(new_tile.id),
-                "type": new_tile.type,
-                "name": new_tile.name,
-                "description": new_tile.description
-            }
-            
-            # Check if we need to set island ID based on the tile
-            if new_tile.island_id and new_tile.island_id != save.islandId:
-                save.islandId = new_tile.island_id
-        
-        # Save the updated team data
-        save_team_data(team, save)
-        
-        response = {
-            "message": "Dice rolled successfully",
-            "dice_results": dice_results,
-            "modifier": modifier,
-            "total_movement": roll_total,
-            "previous_tile": save.previousTile,
-            "new_tile": save.currentTile,
-            "new_tile_info": new_tile_info
-        }
-        
-        # Add special actions available based on the new tile type
-        if new_tile:
-            if new_tile.type == "SHOP":
-                response["available_action"] = "shop"
-            elif new_tile.type == "STAR_SPOT":
-                response["available_action"] = "buy_star"
-            elif new_tile.type == "DOCK":
-                response["available_action"] = "charter_ship"
-        
-        return jsonify(response), 200
+        return jsonify(response), status_code
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error rolling dice: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-
-@app.route("/events/<event_id>/teams/<team_id>/shop/item", methods=['POST'])
-def buy_item(event_id, team_id):
-    """Buy an item from the item shop"""
+@app.route("/events/<event_id>/teams/<team_id>/roll/continue", methods=['POST'])
+def continue_roll(event_id, team_id):
+    """Continue a roll in progress"""
     try:
-        data = request.get_json()
+        # Get data from request (optional)
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
         
-        # Validate required fields
-        if "item_id" not in data:
-            return jsonify({"error": "Missing required field: item_id"}), 400
+        # Process the roll using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression, RollState
+        response, status_code = roll_dice_progression(
+            event_id, 
+            team_id, 
+            data, 
+            action_type=RollState.ACTION_TYPES["CONTINUE"]
+        )
         
-        # Check if event exists and is a SP3 event
-        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
-        if not event:
-            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
-        
-        # Check if team exists and belongs to this event
-        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
-        if not team:
-            return jsonify({"error": "Team not found or does not belong to this event"}), 404
-        
-        # Load team data
-        save = SaveData.from_dict(team.data)
-        
-        # Check if the team is rolling (must have just landed on this tile)
-        if not save.isRolling:
-            return jsonify({"error": "Team must be in the middle of a roll to buy an item"}), 400
-        
-        # Check if the team is on a shop tile
-        current_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            tile_number=save.currentTile
-        ).first()
-        
-        if not current_tile or current_tile.type != "SHOP":
-            return jsonify({"error": "Team must be on a shop tile to buy items"}), 400
-        
-        # Get item price from request
-        item_id = data["item_id"]
-        item_price = data.get("price", 10)  # Default price if not provided
-        item_name = data.get("name", f"Item {item_id}")
-        
-        # Check if team has enough coins
-        if save.coins < item_price:
-            return jsonify({"error": f"Not enough coins. Required: {item_price}, Available: {save.coins}"}), 400
-        
-        # Add item to inventory and deduct coins
-        new_item = {
-            "id": item_id,
-            "name": item_name,
-            "description": data.get("description", ""),
-            "purchased_at": datetime.now().isoformat()
-        }
-        save.itemList.append(new_item)
-        save.coins -= item_price
-        
-        # Mark tile as completed if buying an item completes it
-        save.isTileCompleted = True
-        save.isRolling = False
-        
-        # Save the updated team data
-        save_team_data(team, save)
-        
-        return jsonify({
-            "message": "Item purchased successfully",
-            "item": new_item,
-            "remaining_coins": save.coins,
-            "tile_completed": save.isTileCompleted
-        }), 200
+        return jsonify(response), status_code
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error buying item: {str(e)}")
+        logging.error(f"Error continuing roll: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/events/<event_id>/teams/<team_id>/shop/star", methods=['POST'])
-def buy_star(event_id, team_id):
-    """Buy a star from a star spot"""
+@app.route("/events/<event_id>/teams/<team_id>/roll/shop", methods=['POST'])
+def shop_action(event_id, team_id):
+    """Handle shop interactions during a roll"""
     try:
-        data = request.get_json() or {}
+        # Get data from request
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
         
-        # Get star price from request (default to 20 coins)
-        star_price = data.get("price", 20)
+        # Process the shop action using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression, RollState
+        response, status_code = roll_dice_progression(
+            event_id, 
+            team_id, 
+            data, 
+            action_type=RollState.ACTION_TYPES["SHOP"]
+        )
         
-        # Check if event exists and is a SP3 event
-        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
-        if not event:
-            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
-        
-        # Check if team exists and belongs to this event
-        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
-        if not team:
-            return jsonify({"error": "Team not found or does not belong to this event"}), 404
-        
-        # Load team data
-        save = SaveData.from_dict(team.data)
-        
-        # Check if the team is rolling (must have just landed on this tile)
-        if not save.isRolling:
-            return jsonify({"error": "Team must be in the middle of a roll to buy a star"}), 400
-        
-        # Check if the team is on a star spot tile
-        current_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            tile_number=save.currentTile
-        ).first()
-        
-        if not current_tile or current_tile.type != "STAR_SPOT":
-            return jsonify({"error": "Team must be on a star spot tile to buy stars"}), 400
-        
-        # Check if team has enough coins
-        if save.coins < star_price:
-            return jsonify({"error": f"Not enough coins. Required: {star_price}, Available: {save.coins}"}), 400
-        
-        # Add star and deduct coins
-        save.stars += 1
-        save.coins -= star_price
-        
-        # Mark tile as completed
-        save.isTileCompleted = True
-        save.isRolling = False
-        
-        # Save the updated team data
-        save_team_data(team, save)
-        
-        return jsonify({
-            "message": "Star purchased successfully",
-            "stars": save.stars,
-            "remaining_coins": save.coins,
-            "tile_completed": save.isTileCompleted
-        }), 200
+        return jsonify(response), status_code
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error buying star: {str(e)}")
+        logging.error(f"Error processing shop action: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/events/<event_id>/teams/<team_id>/dock/charter", methods=['POST'])
-def charter_ship(event_id, team_id):
-    """Charter a ship from a dock spot to travel to another island"""
+@app.route("/events/<event_id>/teams/<team_id>/roll/star", methods=['POST'])
+def star_action(event_id, team_id):
+    """Handle star purchase during a roll"""
     try:
-        data = request.get_json()
+        # Get data from request
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
         
-        # Validate required fields
-        if "destination_island_id" not in data:
-            return jsonify({"error": "Missing required field: destination_island_id"}), 400
+        # Process the star action using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression, RollState
+        response, status_code = roll_dice_progression(
+            event_id, 
+            team_id, 
+            data, 
+            action_type=RollState.ACTION_TYPES["STAR"]
+        )
         
-        # Check if event exists and is a SP3 event
-        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
-        if not event:
-            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
-        
-        # Check if team exists and belongs to this event
-        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
-        if not team:
-            return jsonify({"error": "Team not found or does not belong to this event"}), 404
-        
-        # Load team data
-        save = SaveData.from_dict(team.data)
-        
-        # Check if the team is rolling (must have just landed on this tile)
-        if not save.isRolling:
-            return jsonify({"error": "Team must be in the middle of a roll to charter a ship"}), 400
-        
-        # Check if the team is on a dock tile
-        current_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            tile_number=save.currentTile
-        ).first()
-        
-        if not current_tile or current_tile.type != "DOCK":
-            return jsonify({"error": "Team must be on a dock tile to charter a ship"}), 400
-        
-        # Get destination details
-        destination_island_id = data["destination_island_id"]
-        
-        # Check if destination island exists
-        destination_island = SP3Regions.query.filter_by(
-            event_id=event_id, 
-            id=destination_island_id
-        ).first()
-        
-        if not destination_island:
-            return jsonify({"error": "Destination island not found"}), 404
-        
-        # Get charter price from request (default to 10 coins)
-        charter_price = data.get("price", 10)
-        
-        # Check if team has enough coins
-        if save.coins < charter_price:
-            return jsonify({"error": f"Not enough coins. Required: {charter_price}, Available: {save.coins}"}), 400
-        
-        # Find the starting tile of the destination island
-        destination_tile = SP3EventTiles.query.filter_by(
-            event_id=event_id, 
-            island_id=destination_island_id,
-            is_island_start=True
-        ).first()
-        
-        if not destination_tile:
-            return jsonify({"error": "Destination island starting tile not found"}), 404
-        
-        # Update team location and deduct coins
-        save.previousTile = save.currentTile
-        save.currentTile = destination_tile.tile_number
-        save.islandId = destination_island_id
-        save.coins -= charter_price
-        
-        # Reset rolling state and mark new tile as not completed
-        save.isRolling = False
-        save.isTileCompleted = False
-        
-        # Save the updated team data
-        save_team_data(team, save)
-        
-        return jsonify({
-            "message": "Ship chartered successfully",
-            "previous_tile": save.previousTile,
-            "destination_island": {
-                "id": str(destination_island_id),
-                "name": destination_island.name,
-                "tile": save.currentTile
-            },
-            "remaining_coins": save.coins
-        }), 200
+        return jsonify(response), status_code
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error chartering ship: {str(e)}")
+        logging.error(f"Error processing star action: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/events/<event_id>/teams/<team_id>/roll/dock", methods=['POST'])
+def dock_action(event_id, team_id):
+    """Handle dock/charter ship interactions during a roll"""
+    try:
+        # Get data from request
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
+        
+        # Process the dock action using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression, RollState
+        response, status_code = roll_dice_progression(
+            event_id, 
+            team_id, 
+            data, 
+            action_type=RollState.ACTION_TYPES["DOCK"]
+        )
+        
+        return jsonify(response), status_code
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error processing dock action: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/events/<event_id>/teams/<team_id>/roll/crossroad", methods=['POST'])
+def crossroad_action(event_id, team_id):
+    """Handle path selection at a crossroad during a roll"""
+    try:
+        # Get data from request
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
+        
+        # Process the crossroad action using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression, RollState
+        response, status_code = roll_dice_progression(
+            event_id, 
+            team_id, 
+            data, 
+            action_type=RollState.ACTION_TYPES["CROSSROAD"]
+        )
+        
+        return jsonify(response), status_code
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error processing crossroad action: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -652,17 +463,17 @@ def get_available_actions(event_id, team_id):
         
         # If they are in the middle of rolling and on a special tile
         if save.isRolling:
-            if current_tile.type == "SHOP":
+            if is_shop_tile(current_tile.id):
                 available_actions.append({
                     "action": "buy_item",
                     "description": "Buy an item from the shop"
                 })
-            elif current_tile.type == "STAR_SPOT":
+            elif is_star_tile(current_tile.id):
                 available_actions.append({
                     "action": "buy_star",
                     "description": "Buy a star" 
                 })
-            elif current_tile.type == "DOCK":
+            elif is_dock_tile(current_tile.id):
                 # Get available destinations
                 regions = SP3Regions.query.filter_by(event_id=event_id).all()
                 destinations = []
@@ -684,7 +495,6 @@ def get_available_actions(event_id, team_id):
         response = {
             "current_tile": {
                 "number": save.currentTile,
-                "type": current_tile.type,
                 "name": current_tile.name,
                 "description": current_tile.description
             },
