@@ -8,22 +8,16 @@ This module handles all item-related functionality including:
 - Team inventory management
 """
 
-from app import db
-import uuid
 import random
 import logging
 from datetime import datetime
-from typing import Dict, List, Any, Callable, Optional, Union
+from typing import Dict, List, Any, Optional
 
-from models.models import Events, EventTeams
+from models.models import EventTeams
 from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data
-from event_handlers.stability_party.item_registry import (
-    ITEM_REGISTRY, get_item, get_all_items, get_items_by_type, get_items_by_rarity
+from event_handlers.stability_party.item_definitions import (
+    ITEM_HANDLERS, ITEM_REGISTRY, get_item, get_all_items, get_items_by_type, get_items_by_rarity
 )
-
-# Dictionary to store item effect handlers
-# Each handler is a function that takes (event_id, team_id, save_data, item_data) and returns a result dict
-ITEM_HANDLERS = {}
 
 # Item rarity weights for random selection
 RARITY_WEIGHTS = {
@@ -33,22 +27,6 @@ RARITY_WEIGHTS = {
     "epic": 4,
     "legendary": 1
 }
-
-def register_item_handler(item_type: str):
-    """
-    Decorator to register an item handler function.
-    
-    Usage:
-        @register_item_handler("health_potion")
-        def health_potion_handler(event_id, team_id, save, item_data):
-            # Implementation
-            return {"message": "Health restored!"}
-    """
-    def decorator(func: Callable):
-        ITEM_HANDLERS[item_type] = func
-        logging.info(f"Registered item handler for type: {item_type}")
-        return func
-    return decorator
 
 def get_item_by_id(item_id: str) -> Optional[Dict[str, Any]]:
     """
@@ -106,7 +84,7 @@ def get_team_items(team_id: str, event_id: str) -> List[Dict[str, Any]]:
         logging.error(f"Error getting team items: {str(e)}")
         return []
 
-def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int = 5) -> List[Dict[str, Any]]:
+def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int = 3) -> List[Dict[str, Any]]:
     """
     Generate a random selection of items for a shop based on shop tier.
     
@@ -129,6 +107,9 @@ def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int =
         # Prepare empty result list
         shop_items = []
         
+        # Keep track of selected items to avoid duplicates
+        selected_item_ids = set()
+        
         # Adjust weights based on shop tier
         tier_weights = RARITY_WEIGHTS.copy()
         if shop_tier > 1:
@@ -149,8 +130,14 @@ def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int =
                 items_by_rarity[rarity] = []
             items_by_rarity[rarity].append(item)
         
+        # Count attempt to avoid infinite loops if there aren't enough unique items
+        attempt_count = 0
+        max_attempts = item_count * 3
+        
         # Select random items based on rarity weights
-        for _ in range(item_count):
+        while len(shop_items) < item_count and attempt_count < max_attempts:
+            attempt_count += 1
+            
             # Determine rarity based on weights
             rarities = list(tier_weights.keys())
             weights = list(tier_weights.values())
@@ -169,8 +156,19 @@ def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int =
                     # Skip if still no items found
                     continue
             
+            # Get available items of this rarity (items not already selected)
+            available_items = [item for item in items_by_rarity[selected_rarity] 
+                               if str(item["id"]) not in selected_item_ids]
+            
+            # If no available items of this rarity, try another rarity
+            if not available_items:
+                continue
+                
             # Select random item of chosen rarity
-            item = random.choice(items_by_rarity[selected_rarity])
+            item = random.choice(available_items)
+            
+            # Mark as selected to avoid duplicates
+            selected_item_ids.add(str(item["id"]))
             
             # Calculate price with some randomness
             base_price = item["base_price"]
@@ -187,6 +185,10 @@ def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int =
                 "rarity": item["rarity"],
                 "price": final_price
             })
+        
+        # If we couldn't find enough unique items, log a warning
+        if len(shop_items) < item_count:
+            logging.warning(f"Could only generate {len(shop_items)} unique items for shop (requested {item_count})")
             
         return shop_items
     except Exception as e:
@@ -319,238 +321,4 @@ def use_item(event_id: str, team_id: str, item_index: int) -> Dict[str, Any]:
     except Exception as e:
         logging.error(f"Error using item: {str(e)}")
         return {"success": False, "message": f"Error using item: {str(e)}"}
-
-#
-# Sample Item Handlers
-#
-
-@register_item_handler("dice_modifier")
-def dice_modifier_handler(event_id, team_id, save, item_data):
-    """Handler for dice modifier items"""
-    data = item_data.get("data", {})
-    modifier_value = data.get("modifier_value", 1)
-    duration = data.get("duration", 1)
     
-    # Apply modifier
-    save.modifier += modifier_value
-    
-    return {
-        "message": f"Dice roll modifier increased by {modifier_value} for your next {duration} rolls!",
-        "effect": {
-            "modifier_value": modifier_value,
-            "duration": duration
-        }
-    }
-
-@register_item_handler("bonus_coins")
-def bonus_coins_handler(event_id, team_id, save, item_data):
-    """Handler for bonus coin items"""
-    data = item_data.get("data", {})
-    coin_amount = data.get("coin_amount", 10)
-    
-    # Add coins
-    save.coins += coin_amount
-    
-    return {
-        "message": f"You gained {coin_amount} coins!",
-        "effect": {
-            "coin_amount": coin_amount
-        }
-    }
-
-@register_item_handler("bonus_dice")
-def bonus_dice_handler(event_id, team_id, save, item_data):
-    """Handler for bonus dice items"""
-    data = item_data.get("data", {})
-    dice_sides = data.get("dice_sides", 6)
-    duration = data.get("duration", 1)
-    
-    # Add a die to the team's dice array
-    save.dice.append(dice_sides)
-    
-    return {
-        "message": f"Added a d{dice_sides} to your next roll!",
-        "effect": {
-            "dice_sides": dice_sides,
-            "duration": duration
-        }
-    }
-
-@register_item_handler("double_roll")
-def double_roll_handler(event_id, team_id, save, item_data):
-    """Handler for double roll items"""
-    # Set a flag for the roll handler to roll twice
-    save.data = save.data or {}
-    save.data["double_roll"] = True
-    
-    return {
-        "message": "Your next roll will be rolled twice, taking the better result!",
-        "effect": {
-            "double_roll": True
-        }
-    }
-
-@register_item_handler("teleport")
-def teleport_handler(event_id, team_id, save, item_data):
-    """Handler for teleport items"""
-    # Logic for teleport would be implemented here
-    # For now, just a placeholder
-    return {
-        "message": "You teleported to a random location on the board!",
-        "effect": {
-            "teleported": True
-        }
-    }
-
-@register_item_handler("star_finder")
-def star_finder_handler(event_id, team_id, save, item_data):
-    """Handler for star finder items"""
-    return {
-        "message": "The nearest star location has been revealed on your map!",
-        "effect": {
-            "star_revealed": True
-        }
-    }
-
-@register_item_handler("star_discount")
-def star_discount_handler(event_id, team_id, save, item_data):
-    """Handler for star discount items"""
-    data = item_data.get("data", {})
-    discount = data.get("discount_percent", 50)
-    
-    # Set discount in team data
-    save.data = save.data or {}
-    save.data["star_discount"] = discount
-    
-    return {
-        "message": f"Your next star purchase will be {discount}% off!",
-        "effect": {
-            "star_discount": discount
-        }
-    }
-
-@register_item_handler("buff")
-def buff_handler(event_id, team_id, save, item_data):
-    """Handler for buff items"""
-    data = item_data.get("data", {})
-    buff_type = data.get("buff_type", "strength")
-    buff_duration = data.get("buff_duration", 3)
-    
-    # Add buff to team
-    if buff_type not in save.buffs:
-        save.buffs.append(buff_type)
-    
-    # Store duration in team data
-    save.data = save.data or {}
-    if "buff_durations" not in save.data:
-        save.data["buff_durations"] = {}
-    save.data["buff_durations"][buff_type] = buff_duration
-    
-    return {
-        "message": f"Applied {buff_type} buff for {buff_duration} turns!",
-        "effect": {
-            "buff_type": buff_type,
-            "buff_duration": buff_duration
-        }
-    }
-
-@register_item_handler("equipment_passive")
-def equipment_passive_handler(event_id, team_id, save, item_data):
-    """Handler for equipment passive effects"""
-    data = item_data.get("data", {})
-    slot = data.get("slot")
-    
-    if not slot:
-        return {"message": "Equipment slot not specified", "success": False}
-    
-    # Equip the item in the proper slot
-    if not save.equipment:
-        # Initialize equipment if needed
-        from event_handlers.stability_party.stability_party_handler import Equipment
-        save.equipment = Equipment.from_dict({})
-    
-    # Get current item in that slot
-    old_item = None
-    if slot == "helmet":
-        old_item = save.equipment.helmet
-        save.equipment.helmet = item_data["id"]
-    elif slot == "armor":
-        old_item = save.equipment.armor
-        save.equipment.armor = item_data["id"]
-    elif slot == "weapon":
-        old_item = save.equipment.weapon
-        save.equipment.weapon = item_data["id"]
-    elif slot == "jewelry":
-        old_item = save.equipment.jewelry
-        save.equipment.jewelry = item_data["id"]
-    elif slot == "cape":
-        old_item = save.equipment.cape
-        save.equipment.cape = item_data["id"]
-    
-    # If replacing an item, add old item back to inventory
-    if old_item:
-        # Find old item in registry/DB and add back to inventory
-        old_item_data = get_item_by_id(old_item)
-        if old_item_data:
-            old_item_entry = {
-                "id": old_item,
-                "name": old_item_data["name"],
-                "description": old_item_data["description"],
-                "item_type": old_item_data["item_type"],
-                "rarity": old_item_data["rarity"],
-                "uses_remaining": old_item_data["uses"],
-                "activation_handler": old_item_data["activation_handler"]
-            }
-            save.itemList.append(old_item_entry)
-    
-    # Apply stat bonuses from equipment
-    stat_bonuses = data.get("stat_bonus", {})
-    
-    # Store equipment bonuses in save data
-    save.data = save.data or {}
-    if "equipment_bonuses" not in save.data:
-        save.data["equipment_bonuses"] = {}
-    
-    # Add this item's bonuses
-    for stat, value in stat_bonuses.items():
-        if stat not in save.data["equipment_bonuses"]:
-            save.data["equipment_bonuses"][stat] = 0
-        save.data["equipment_bonuses"][stat] += value
-    
-    # For specific stats like movement, apply directly
-    if "movement" in stat_bonuses:
-        save.modifier += stat_bonuses["movement"]
-    
-    return {
-        "message": f"Equipped {item_data['name']} in {slot} slot!",
-        "effect": {
-            "equipped": True,
-            "slot": slot,
-            "bonuses": stat_bonuses
-        },
-        "remove_on_use": True  # Remove from inventory since it's now equipped
-    }
-
-@register_item_handler("magic_lamp")
-def magic_lamp_handler(event_id, team_id, save, item_data):
-    """Handler for magic lamp item (teleport to any tile)"""
-    # In a real implementation, this would show UI for choosing a destination
-    # For now, just a placeholder
-    return {
-        "message": "You can now choose any tile on the board to teleport to!",
-        "effect": {
-            "choose_teleport": True
-        }
-    }
-
-@register_item_handler("star_stealer")
-def star_stealer_handler(event_id, team_id, save, item_data):
-    """Handler for star stealer item (steal star from another team)"""
-    # In a real implementation, this would show UI for choosing a team
-    # For now, just a placeholder
-    return {
-        "message": "You can now choose a team to steal a star from!",
-        "effect": {
-            "choose_team": True
-        }
-    }

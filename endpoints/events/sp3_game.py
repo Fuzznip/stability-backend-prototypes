@@ -109,12 +109,11 @@ def get_team_stats(event_id, team_id):
                 "region": region_info
             },
             "tile_completed": save.isTileCompleted,
-            "equipment": save.equipment,
+            "equipment": save.equipment.to_dict(),
             "buffs": save.buffs,
             "debuffs": save.debuffs,
             "items": save.itemList,
-            "is_rolling": save.isRolling,
-            "current_challenge": save.currentChallenge
+            "is_rolling": save.isRolling
         }
         
         logging.info(f"Successfully retrieved stats for team {team.name} (ID: {team_id})")

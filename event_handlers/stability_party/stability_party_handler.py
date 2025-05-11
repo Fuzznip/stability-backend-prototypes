@@ -707,7 +707,7 @@ def _prepare_shop_interaction(event_id, team_id, save, roll_state, current_tile)
     
     # Get shop tier from tile data (default to 1)
     shop_tier = current_tile.data.get("shopTier", 1)
-    item_count = current_tile.data.get("itemCount", 5)
+    item_count = current_tile.data.get("itemCount", 3)
     logging.debug(f"Shop tier: {shop_tier}, Item count: {item_count}")
     
     # Generate random items for the shop
@@ -760,7 +760,7 @@ def _handle_shop_action(event_id, team_id, save, data):
     # Validate required fields for purchase
     if not data or "item_id" not in data:
         logging.error("Missing required field: item_id")
-        return {"error": "Missing required field: item_id"}
+        return {"error": "Missing required field: item_id"}, 400
     
     item_id = data["item_id"]
     item_price = data.get("price", 10)
