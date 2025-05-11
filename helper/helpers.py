@@ -6,7 +6,6 @@ from uuid import UUID
 
 # Used to serialize the models to be returned from the endpoints
 class Serializer(object):
-
     def serialize(self):
         return {c: getattr(self, c) for c in inspect(self).attrs.keys()}
 

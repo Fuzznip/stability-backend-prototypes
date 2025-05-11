@@ -1,0 +1,7 @@
+from event_handlers.event_handler import EventHandler
+from event_handlers.dink_test.gnome_child_bone_handler import gnome_child_bone_handler
+from event_handlers.stability_party.stability_party_handler import stability_party_handler
+
+# Register your event handlers here
+EventHandler.register_handler(gnome_child_bone_handler)
+EventHandler.register_handler(stability_party_handler)

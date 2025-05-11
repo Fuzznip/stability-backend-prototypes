@@ -40,10 +40,17 @@ swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL)
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 # Needed to auto generate tables using SQLAlchemy
-from models import *
+from models import models, stability_party_3
 
 # make app aware of all endpoints
-from endpoints import users, announcements, splits, applications, diary, ranks, raid_tier
+from endpoints import users, announcements, splits, applications, diary, ranks, raid_tier, discord_management
+from endpoints.events import item_whitelist, submit, sp3_moderation, sp3_game, events, items
+
+# Register blueprints
+app.register_blueprint(items.items_bp)
+
+# Initialize event handlers
+from event_handlers import event_handler_init
 
 if __name__ == '__main__':
     app.run(debug=False)
