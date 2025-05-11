@@ -355,6 +355,8 @@ def get_user_accounts(id):
         return "Could not find User", 404
     
     data = [user.runescape_name]
+    if not user.alt_names:
+        return json.dumps(data, cls=ModelEncoder)
     for row in user.alt_names:
         data.append(row)
     return json.dumps(data, cls=ModelEncoder)
