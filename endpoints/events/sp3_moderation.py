@@ -266,6 +266,8 @@ def add_player_to_team(event_id, team_id):
 
         # Add alts to the team if they exist
         print(f"Adding alt names for user {user.runescape_name}: {user.alt_names}")
+        if user.alt_names is None:
+            user.alt_names = []
         for alt_username in user.alt_names:
             if alt_username is None or alt_username == "":
                 continue
