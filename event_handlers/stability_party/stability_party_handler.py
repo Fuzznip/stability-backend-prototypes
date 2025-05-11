@@ -258,6 +258,10 @@ def stability_party_handler(submission: EventSubmission) -> list[NotificationRes
     # For now we will assume there is only one event of this type running at a time
     event = Events.query.filter(Events.start_time <= now).filter(Events.end_time >= now).filter(Events.type == "STABILITY_PARTY").first()
 
+    if event is None:
+        logging.debug(f"No active event found.")
+        return None
+
     team = get_team(event.id, submission.rsn)
     if team is None:
         logging.debug(f"Team not found for {submission.rsn} in event {event.id}")
