@@ -83,18 +83,17 @@ def create_team(event_id):
         
         # Initialize SaveData for the team
         save_data = SaveData()
-        save_data.previousTile = 0
-        save_data.currentTile = 0
+        save_data.previousTile = None
+        save_data.currentTile = None
         save_data.stars = 0
         save_data.coins = 0
-        save_data.islandId = 0
+        save_data.islandId = None
         save_data.itemList = []
         save_data.equipment = None
         save_data.dice = []
         save_data.modifier = 0
-        save_data.isTileCompleted = False
+        save_data.isTileCompleted = True
         save_data.isRolling = False
-        save_data.currentChallenge = None
         save_data.buffs = []
         save_data.debuffs = []
         save_data.textChannelId = text_channel_id
