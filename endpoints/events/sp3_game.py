@@ -2,8 +2,7 @@ from app import app, db
 from flask import request, jsonify
 from models.models import Events, EventTeams, EventTeamMemberMappings
 from models.stability_party_3 import SP3Regions, SP3EventTiles
-from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data, is_shop_tile, is_star_tile, is_dock_tile
-from sqlalchemy.orm.attributes import flag_modified
+from event_handlers.stability_party.stability_party_handler import SaveData, is_shop_tile, is_star_tile, is_dock_tile
 import logging
 import json
 from datetime import datetime, timezone
@@ -311,7 +310,6 @@ def continue_roll(event_id, team_id):
         logging.error(f"Error continuing roll: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/events/<event_id>/teams/<team_id>/roll/shop", methods=['POST'])
 def shop_action(event_id, team_id):
     """Handle shop interactions during a roll"""
@@ -338,7 +336,6 @@ def shop_action(event_id, team_id):
         db.session.rollback()
         logging.error(f"Error processing shop action: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/events/<event_id>/teams/<team_id>/roll/star", methods=['POST'])
 def star_action(event_id, team_id):
@@ -367,7 +364,6 @@ def star_action(event_id, team_id):
         logging.error(f"Error processing star action: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/events/<event_id>/teams/<team_id>/roll/dock", methods=['POST'])
 def dock_action(event_id, team_id):
     """Handle dock/charter ship interactions during a roll"""
@@ -394,7 +390,6 @@ def dock_action(event_id, team_id):
         db.session.rollback()
         logging.error(f"Error processing dock action: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/events/<event_id>/teams/<team_id>/roll/crossroad", methods=['POST'])
 def crossroad_action(event_id, team_id):
@@ -423,6 +418,32 @@ def crossroad_action(event_id, team_id):
         logging.error(f"Error processing crossroad action: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/events/<event_id>/teams/<team_id>/roll/first_island", methods=['POST'])
+def first_island_action(event_id, team_id):
+    """Handle first island selection during a roll"""
+    try:
+        # Get data from request
+        data = None
+        try:
+            if request.is_json and request.data:
+                data = request.get_json(force=False, silent=True)
+        except Exception as e:
+            logging.warning(f"Error parsing request data: {str(e)}")
+        
+        # Process the first island action using the progression helper
+        from event_handlers.stability_party.stability_party_handler import roll_dice_progression, RollState
+        response, status_code = roll_dice_progression(
+            event_id, 
+            team_id, 
+            data, 
+            action_type=RollState.ACTION_TYPES["ISLAND_SELECTION"]
+        )
+        
+        return jsonify(response), status_code
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error processing first island action: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/events/<event_id>/teams/<team_id>/available-actions", methods=['GET'])
 def get_available_actions(event_id, team_id):

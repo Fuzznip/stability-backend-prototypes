@@ -14,9 +14,9 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 from models.models import EventTeams
-from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data
+from event_handlers.stability_party.save_data import SaveData, save_team_data
 from event_handlers.stability_party.item_definitions import (
-    ITEM_HANDLERS, ITEM_REGISTRY, get_item, get_all_items, get_items_by_type, get_items_by_rarity
+    ITEM_HANDLERS, get_item, get_all_items
 )
 
 # Item rarity weights for random selection
@@ -266,6 +266,11 @@ def use_item(event_id: str, team_id: str, item_index: int) -> Dict[str, Any]:
             return {"success": False, "message": "Team not found"}
         
         save = SaveData.from_dict(team.data)
+
+        # Check if there are any pending item activations
+        if save.pendingItemActivation:
+            logging.warning(f"Pending item activations found for team {team_id}, cannot use item")
+            return {"success": False, "message": "Cannot use item while another activation is pending"} 
         
         # Check if item index is valid
         if item_index < 0 or item_index >= len(save.itemList):
@@ -297,6 +302,26 @@ def use_item(event_id: str, team_id: str, item_index: int) -> Dict[str, Any]:
         # Call the item handler function
         handler = ITEM_HANDLERS[handler_name]
         result = handler(event_id, team_id, save, item_entry)
+
+        if item.get("requires_selection", False):
+            save.pendingItemActivation = {
+                "item_id": item_id,
+                "item_index": item_index,
+                "item_name": item["name"],
+                "selection_handler": item["selection_handler"],
+                "options": result.get("options", []),
+                "effect": result.get("effect", {}),
+            }
+
+            save_team_data(team, save)
+
+            return {
+                "success": True,
+                "requires_selection": True,
+                "message": f"Choose an option for {item['name']}!",
+                "options": result.get("options", []),
+                "item_name": item["name"]
+            }
         
         # Update uses remaining
         save.itemList[item_index]["uses_remaining"] = uses_remaining - 1
@@ -322,3 +347,89 @@ def use_item(event_id: str, team_id: str, item_index: int) -> Dict[str, Any]:
         logging.error(f"Error using item: {str(e)}")
         return {"success": False, "message": f"Error using item: {str(e)}"}
     
+def complete_item_activation(event_id: str, team_id: str, selection_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Complete a two-stage item activation by processing the user's selection
+    
+    Parameters:
+    - event_id: Event ID
+    - team_id: Team ID
+    - selection_data: Dictionary containing the selected option
+    
+    Returns:
+    - Result dictionary with the outcome of the selection
+    """
+    try:
+        # Get team and save data
+        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
+        if not team:
+            logging.error(f"Team not found: {team_id}")
+            return {"success": False, "message": "Team not found"}
+        
+        save = SaveData.from_dict(team.data)
+        
+        # Check if there's a pending activation
+        if not hasattr(save, 'pending_item_activation') or not save.pending_item_activation:
+            logging.error(f"No pending item activation for team {team_id}")
+            return {"success": False, "message": "No item waiting for your selection"}
+        
+        pending = save.pending_item_activation
+        item_index = pending["item_index"]
+        selection_handler = pending["selection_handler"]
+        
+        # Validate that the item still exists in inventory (hasn't been removed somehow)
+        if item_index >= len(save.itemList) or save.itemList[item_index]["id"] != pending["item_id"]:
+            logging.error(f"Pending item no longer exists in inventory: {pending['item_id']}")
+            save.pending_item_activation = None
+            save_team_data(team, save)
+            return {"success": False, "message": "The item you were using is no longer in your inventory"}
+        
+        # Get the selection handler
+        if not selection_handler or selection_handler not in ITEM_HANDLERS:
+            logging.error(f"No selection handler found: {selection_handler}")
+            save.pending_item_activation = None
+            save_team_data(team, save)
+            return {"success": False, "message": "Unable to process your selection"}
+        
+        # Call the selection handler with the selected option
+        handler = ITEM_HANDLERS[selection_handler]
+        result = handler(event_id, team_id, save, {
+            **save.itemList[item_index],
+            "selected_option": selection_data.get("selection")
+        })
+        
+        # Get full item details
+        item = get_item_by_id(pending["item_id"])
+        if not item:
+            logging.error(f"Item not found in registry: {pending['item_id']}")
+            save.pending_item_activation = None
+            save_team_data(team, save)
+            return {"success": False, "message": "Item definition no longer exists"}
+        
+        # Update uses remaining
+        uses_remaining = save.itemList[item_index].get("uses_remaining", item["uses"]) - 1
+        save.itemList[item_index]["uses_remaining"] = uses_remaining
+        
+        # Remove item if no uses remaining
+        if uses_remaining <= 0 and item["uses"] > 0:
+            logging.info(f"Item {item['name']} used up, removing from inventory")
+            if "remove_on_use" not in result or result["remove_on_use"]:
+                save.itemList.pop(item_index)
+        
+        # Clear the pending activation
+        save.pending_item_activation = None
+        
+        # Save changes
+        save_team_data(team, save)
+        
+        # Return result
+        return {
+            "success": True, 
+            "message": result.get("message", f"{item['name']} used successfully!"),
+            "effect": result.get("effect", {}),
+            "item_name": item["name"]
+        }
+        
+    except Exception as e:
+        logging.error(f"Error completing item activation: {str(e)}")
+        return {"success": False, "message": f"Error completing item activation: {str(e)}"}

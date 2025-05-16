@@ -83,18 +83,17 @@ def create_team(event_id):
         
         # Initialize SaveData for the team
         save_data = SaveData()
-        save_data.previousTile = 0
-        save_data.currentTile = 0
+        save_data.previousTile = None
+        save_data.currentTile = None
         save_data.stars = 0
         save_data.coins = 0
-        save_data.islandId = 0
+        save_data.islandId = None
         save_data.itemList = []
         save_data.equipment = None
         save_data.dice = []
         save_data.modifier = 0
-        save_data.isTileCompleted = False
+        save_data.isTileCompleted = True
         save_data.isRolling = False
-        save_data.currentChallenge = None
         save_data.buffs = []
         save_data.debuffs = []
         save_data.textChannelId = text_channel_id
@@ -400,6 +399,7 @@ def force_complete_tile(event_id, team_id):
         
         # Force complete the current tile
         save.isTileCompleted = True
+        save.isRolling = False
         
         # Save the updated team data
         save_team_data(team, save)
@@ -482,6 +482,43 @@ def set_team_coins(event_id, team_id):
         logging.error(f"Error updating team coins: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/events/<event_id>/moderation/teams/<team_id>/move-to-tile", methods=['PUT'])
+def move_team_to_tile(event_id, team_id):
+    """Move a team to a specific tile"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if "tile_id" not in data:
+            return jsonify({"error": "Missing required field: tile_id"}), 400
+        
+        # Check if event exists and is a SP3 event
+        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
+        if not event:
+            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
+        
+        # Check if team exists and belongs to this event
+        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
+        if not team:
+            return jsonify({"error": "Team not found or does not belong to this event"}), 404
+        
+        # Load team data
+        save = SaveData.from_dict(team.data)
+        
+        # Move the team to the specified tile
+        save.previousTile = save.currentTile
+        save.currentTile = uuid.UUID(data["tile_id"])
+        
+        # Save the updated team data
+        save_team_data(team, save)
+        
+        tile = SP3EventTiles.query.filter_by(id=save.currentTile).first()
+
+        return jsonify({"message": f"Team moved to tile {tile.name} successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error moving team to tile: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/events/<event_id>/moderation/teams/<team_id>/undo-roll", methods=['POST'])
 def undo_team_roll(event_id, team_id):

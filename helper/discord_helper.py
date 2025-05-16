@@ -37,7 +37,6 @@ def create_discord_role(role_name: str, color: str = None) -> Optional[str]:
         logging.error(f"Failed to create Discord role: {str(e)}")
         return None
 
-
 def create_discord_text_channel(
     channel_name: str, 
     team_role_id: str
@@ -76,7 +75,6 @@ def create_discord_text_channel(
         logging.error(f"Failed to create Discord text channel: {str(e)}")
         return None
 
-
 def create_discord_voice_channel(
     channel_name: str, 
     team_role_id: str
@@ -114,7 +112,6 @@ def create_discord_voice_channel(
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to create Discord voice channel: {str(e)}")
         return None
-
 
 def get_event_category_id() -> Optional[str]:
     """

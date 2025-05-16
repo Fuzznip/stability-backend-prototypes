@@ -32,6 +32,8 @@ class ItemDefinition:
         uses: int = 1,
         activation_type: str = "active",
         activation_handler: str = None,
+        requires_selection: bool = False,  # New flag for items requiring selection
+        selection_handler: str = None,    # Handler for processing selections
         data: Dict[str, Any] = None
     ):
         self.id = id
@@ -44,6 +46,8 @@ class ItemDefinition:
         self.uses = uses
         self.activation_type = activation_type
         self.activation_handler = activation_handler
+        self.requires_selection = requires_selection
+        self.selection_handler = selection_handler
         self.data = data or {}
         
     def to_dict(self) -> Dict[str, Any]:
@@ -59,6 +63,8 @@ class ItemDefinition:
             "uses": self.uses,
             "activation_type": self.activation_type,
             "activation_handler": self.activation_handler,
+            "requires_selection": self.requires_selection,
+            "selection_handler": self.selection_handler,
             "data": self.data
         }
 
@@ -81,9 +87,11 @@ def register_item(
     rarity: str,
     base_price: int,
     handler_func: Callable = None,
+    selection_func: Callable = None,
     image: str = None,
     uses: int = 1,
     activation_type: str = "active",
+    requires_selection: bool = False,
     data: Dict[str, Any] = None
 ) -> ItemDefinition:
     """
@@ -107,9 +115,16 @@ def register_item(
     """
     # If a handler is provided, register it with the item's ID as the handler name
     activation_handler = None
+    selection_handler = None
+
     if handler_func:
         activation_handler = id
         register_item_handler(id, handler_func)
+
+    if selection_func:
+        selection_handler = id + "_selection"
+        register_item_handler(selection_handler, selection_func)
+
     
     item = ItemDefinition(
         id=id,
@@ -122,6 +137,8 @@ def register_item(
         uses=uses,
         activation_type=activation_type,
         activation_handler=activation_handler,
+        requires_selection=requires_selection,
+        selection_handler=selection_func,
         data=data
     )
     
@@ -651,3 +668,54 @@ register_item(
     activation_type="active",
     data={}
 )
+
+def osmumten_fang_handler(event_id, team_id, save, item_data):
+    """Handler for Osmumten's Fang item (choose exactly what number to roll)"""
+    # In a real implementation, this would show UI for choosing a number
+    # For now, just a placeholder
+    return {
+        "message": "You can now choose exactly what number to roll!",
+        "effect": {
+            "choose_number": True
+        }
+    }
+
+def osmumten_fang_selection_handler(event_id, team_id, save, item_data):
+    """Handler for selecting a number with Osmumten's Fang"""
+    # In a real implementation, this would process the selected number
+    # For now, just a placeholder
+    selected_number = item_data.get("selected_option", 1)
+
+    save.dice = []
+    save.modifier = selected_number
+    
+    return {
+        "message": f"You chose to roll a {selected_number}!",
+        "effect": {
+            "selected_number": selected_number
+        }
+    }
+
+register_item(
+    id="osmumten_fang",
+    name="Osmumten's Fang",
+    description="Choose exactly what number to roll",
+    item_type="consumable",
+    rarity="legendary",
+    base_price=150,
+    handler_func=osmumten_fang_handler,
+    uses=1,
+    activation_type="active",
+    data={}
+)
+
+def teleport_tablet_handler(event_id, team_id, save, item_data):
+    """Handler for teleport tablet item (teleport to another team's location)"""
+    # In a real implementation, this would show UI for choosing a team
+    # For now, just a placeholder
+    return {
+        "message": "You can now choose a team to teleport to!",
+        "effect": {
+            "choose_team": True
+        }
+    }
