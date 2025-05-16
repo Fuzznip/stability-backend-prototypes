@@ -9,6 +9,7 @@ import logging
 import random
 import requests
 from datetime import datetime, timezone
+from sqlalchemy.orm.attributes import flag_modified  # Add this import
 
 def send_event_notification(event_id: uuid, team_id: uuid, title: str, message: str) -> None:
     event = Events.query.filter_by(id=event_id).first()
@@ -510,7 +511,7 @@ def is_star_tile(tile_id):
         event = Events.query.filter_by(id=tile.event_id).first()
         if event:
             star_list = event.data.get("star_tiles", [])
-            if tile_id in star_list:
+            if str(tile_id) in star_list:
                 logging.debug(f"Tile {tile_id} is a star tile")
                 return True
             else:
@@ -558,6 +559,39 @@ def is_island_start_tile(tile_id):
         else:
             logging.debug(f"Tile {tile_id} is not the start tile of an island")
             return False
+            
+    return False
+
+def is_region_populated(tile_id):
+    """Check if the tile is a populated region"""
+    all_teams: list[EventTeams] = EventTeams.query.all()
+    tile = SP3EventTiles.query.filter_by(id=tile_id).first()
+    if not tile:
+        logging.error(f"Tile not found for ID {tile_id}")
+        return False
+    
+    tile_region_id = tile.region_id
+    for team in all_teams:
+        if team.data.get("islandId") == str(tile_region_id):
+            logging.debug(f"Tile {tile_id} is a populated region")
+            return True
+            
+    return False
+
+def does_region_have_star(tile_id):
+    """Check if the tile is a region with a star"""
+    tile = SP3EventTiles.query.filter_by(id=tile_id).first()
+    tile_region = tile.region_id if tile else None
+    if tile and tile_region:
+        event = Events.query.filter_by(id=tile.event_id).first()
+        if event:
+            star_list = event.data.get("star_tiles", [])
+            for star_tile_id in star_list:
+                star_tile = SP3EventTiles.query.filter_by(id=star_tile_id).first()
+                star_tile_region = star_tile.region_id if star_tile else None
+                if str(tile_region) == str(star_tile_region):
+                    logging.debug(f"Tile {tile_id} is a region with a star")
+                    return True
             
     return False
 
@@ -727,21 +761,66 @@ def _handle_shop_action(event_id, team_id, save, data):
 def _prepare_star_interaction(event_id, team_id, save, current_tile):
     logging.info(f"Preparing STAR for team {team_id} at {current_tile.name}")
     save.roll_state.action_required = RollState.ACTION_TYPES["STAR"]
-    save.roll_state.action_data = {"message": f"Star available at {current_tile.name}!", "price": 20, "roll_remaining": save.roll_state.roll_remaining}
+    save.roll_state.action_data = {
+        "message": f"Star available at {current_tile.name}!",
+        "price": 100,
+        "roll_remaining": save.roll_state.roll_remaining
+    }
     return save.roll_state.to_dict()
 
 def _handle_star_action(event_id, team_id, save, data):
     logging.info(f"Team {team_id} star action: {data}")
     # Actual star purchase logic
-    roll_remaining_from_client = data.get("roll_remaining", 0)
+    roll_remaining_from_client = save.roll_state.roll_remaining
+
+    if save.coins < 100:
+        logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
+        return {"error": "Not enough coins to purchase star"}, 400
     
+    # Deduct coins for the star purchase
+    save.coins -= 100
+    save.stars += 1
+
+    # Move the star to a new tile
+    new_star_tile_id = None
+    all_regions = SP3Regions.query.all()
+    applicable_regions = []
+
+    for region in all_regions:
+        if not is_region_populated(region.id):
+            applicable_regions.append(region.id)
+            
+    applicable_region_tiles = SP3EventTiles.query.filter(
+        SP3EventTiles.event_id == event_id,
+        SP3EventTiles.region_id.in_(applicable_regions),
+    ).all()
+
+    # Filter out tiles that are shops, docks, or already have stars
+    applicable_region_tiles = [tile for tile in applicable_region_tiles if not is_shop_tile(tile.id) and not is_dock_tile(tile.id) and not is_star_tile(tile.id)]
+    logging.info(f"Applicable region tiles for star placement: {[tile.name for tile in applicable_region_tiles]}")
+    if applicable_region_tiles:
+        new_star_tile = random.choice(applicable_region_tiles)
+        new_star_tile_id = new_star_tile.id
+        logging.info(f"Star moved to tile {new_star_tile.name} (ID: {new_star_tile_id})")
+    else:
+        logging.error("No valid tiles available for star placement.")
+        return {"error": "No valid tiles available for star placement"}, 400
+    
+    old_star_tile_id = save.currentTile
+    event = Events.query.filter_by(id=event_id).first()
+    star_tiles = event.data.get("star_tiles")
+    star_tiles.remove(str(old_star_tile_id))
+    star_tiles.append(str(new_star_tile_id))
+    event.data["star_tiles"] = star_tiles
+    flag_modified(event, "data")
+    db.session.commit()
+
     # Do NOT consume a move for the star interaction itself - only movement consumes moves
     # Update roll state
-    if save.roll_state:
-        save.roll_state.roll_remaining = roll_remaining_from_client
-    else:
+    if not save.roll_state:
         save.roll_state = RollState(event_id, team_id, roll_remaining_from_client, save.currentTile)
-        save.roll_state.roll_remaining = roll_remaining_from_client
+        
+    save.roll_state.roll_remaining = roll_remaining_from_client
     
     logging.info(f"After star interaction, maintaining roll remaining: {roll_remaining_from_client}")
     

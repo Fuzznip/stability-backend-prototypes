@@ -16,7 +16,7 @@ from app import db
 from models.models import Events, EventTeams
 from event_handlers.stability_party.item_system import get_team_items, use_item, complete_item_activation
 
-@app.route('/<event_id>/team/<team_id>/inventory', methods=['GET'])
+@app.route('/events/<event_id>/teams/<team_id>/items/inventory', methods=['GET'])
 def get_team_inventory(event_id, team_id):
     """
     Get all items owned by a team.
@@ -59,7 +59,7 @@ def get_team_inventory(event_id, team_id):
         logging.error(f"Error getting team inventory: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/<event_id>/team/<team_id>/use', methods=['POST'])
+@app.route('/events/<event_id>/teams/<team_id>/items/use', methods=['POST'])
 def use_team_item(event_id, team_id):
     """
     Use/activate an item from the team's inventory.
@@ -112,7 +112,7 @@ def use_team_item(event_id, team_id):
         db.session.rollback()
         return jsonify({"error": str(e), "success": False}), 500
     
-@app.route('/<event_id>/team/<team_id>/selection', methods=['POST'])
+@app.route('/events/<event_id>/teams/<team_id>/items/selection', methods=['POST'])
 def complete_item_selection(event_id, team_id):
     """
     Complete a two-stage item activation by submitting the selected option
