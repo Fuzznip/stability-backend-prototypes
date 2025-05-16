@@ -116,6 +116,7 @@ class SaveData:
 
     previousTile: uuid.UUID
     currentTile: uuid.UUID
+    currentChallenges: list[uuid.UUID]
     stars: int
     coins: int
     islandId: uuid.UUID
@@ -147,6 +148,7 @@ class SaveData:
         return {
             "previousTile": str(self.previousTile) if self.previousTile else None,
             "currentTile": str(self.currentTile) if self.currentTile else None,
+            "currentChallenges": [str(challenge_id) for challenge_id in self.currentChallenges],
             "stars": self.stars,
             "coins": self.coins,
             "islandId": str(self.islandId) if self.islandId else None,
@@ -173,6 +175,7 @@ class SaveData:
         save_data = SaveData()
         save_data.previousTile = uuid.UUID(data["previousTile"]) if data.get("previousTile") else None
         save_data.currentTile = uuid.UUID(data["currentTile"]) if data.get("currentTile") else None
+        save_data.currentChallenges = [uuid.UUID(challenge_id) if challenge_id else None for challenge_id in data.get("currentChallenges", [])]
         save_data.stars = data.get("stars", 0)
         save_data.coins = data.get("coins", 0)
         save_data.islandId = uuid.UUID(data["islandId"]) if data.get("islandId") else None

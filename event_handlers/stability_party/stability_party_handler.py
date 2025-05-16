@@ -41,7 +41,12 @@ def send_event_notification(event_id: uuid, team_id: uuid, title: str, message: 
 def get_team_challenges(save: SaveData) -> list[SP3EventTileChallengeMapping]:
     challenges: list[SP3EventTileChallengeMapping] = []
     # Ensure save.currentTile is not None before querying
-    if save.currentTile:
+    if save.currentChallenges:
+        for challenge_id in save.currentChallenges:
+            challenge = SP3EventTileChallengeMapping.query.filter(SP3EventTileChallengeMapping.challenge_id == challenge_id).first()
+            if challenge:
+                challenges.append(challenge)
+    elif save.currentTile:
         teamChallenges = SP3EventTileChallengeMapping.query.filter(SP3EventTileChallengeMapping.tile_id == save.currentTile).all()
         for challenge in teamChallenges:
             challenges.append(challenge)
@@ -121,6 +126,7 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
     # For now, let's assume it replaces or is the only dice they get from this
     save.dice = dice_earned 
     save.isTileCompleted = True # This specific TILE challenge type completes the tile
+    save.currentChallenges = []
 
     fields = [
         NotificationField(name="Stars", value=save.stars, inline=True),
@@ -693,7 +699,7 @@ def _prepare_shop_interaction(event_id, team_id, save, current_tile):
     save.roll_state.action_required = RollState.ACTION_TYPES["SHOP"]
     # Actual shop items would be generated here
 
-    items = generate_shop_inventory(event_id, shop_tier=1, item_count=3)
+    items = [] #generate_shop_inventory(event_id, shop_tier=1, item_count=3)
 
     # get region name
     region = SP3Regions.query.filter(SP3Regions.id == current_tile.region_id).first()
@@ -1072,12 +1078,17 @@ def _complete_roll(event_id, team_id, save: SaveData) -> dict:
             "id": str(current_tile_obj.id), "name": current_tile_obj.name,
             "description": current_tile_obj.description or ""
         }
-        challenge_mappings_count = SP3EventTileChallengeMapping.query.filter_by(tile_id=current_tile_obj.id).count()
+        challenge_mappings = SP3EventTileChallengeMapping.query.filter_by(tile_id=current_tile_obj.id).all()
+        challenge_mappings_count = len(challenge_mappings)
         if challenge_mappings_count == 0:
             logging.info(f"Tile {current_tile_obj.name} has no challenges. Auto-marking as completed.")
             save.isTileCompleted = True
         else:
             logging.info(f"Tile {current_tile_obj.name} has {challenge_mappings_count} challenges. Completion depends on progress.")
+
+            if current_tile_obj.data.get("category", "ANY") == "RANDOM":
+                # Pick a random challenge to be the tile challenge
+                save.currentChallenges = [random.choice(challenge_mappings).challenge_id]
     else:
         logging.warning(f"Final tile ID {save.currentTile} not found. Cannot determine challenges.")
         tile_info = {"id": str(save.currentTile), "name": "Unknown Tile (Not Found)"}
