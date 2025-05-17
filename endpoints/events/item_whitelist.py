@@ -35,7 +35,6 @@ def get_item_whitelist():
             # Construct the key based on trigger and source
             triggerSet.add(f"{trigger.trigger}:{trigger.source}" if trigger.source else f"{trigger.trigger}")
         elif trigger.type == "KC":
-            messageFilterSet.add(f"{trigger.trigger}")
             killCountTriggerSet.add(trigger.trigger)
         else:
             logging.warning(f"Unknown trigger type: {trigger.type}")
