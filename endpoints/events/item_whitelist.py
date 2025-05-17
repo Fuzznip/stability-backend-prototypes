@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 def get_item_whitelist():
     data = {
         "triggers": [],
+        "killCountTriggers": [],
         "messageFilters": []
     }
 
@@ -27,6 +28,7 @@ def get_item_whitelist():
 
     triggerSet = set()
     messageFilterSet = set()
+    killCountTriggerSet = set()
 
     for trigger in triggers:
         if trigger.type == "DROP":
@@ -34,10 +36,12 @@ def get_item_whitelist():
             triggerSet.add(f"{trigger.trigger}:{trigger.source}" if trigger.source else f"{trigger.trigger}")
         elif trigger.type == "KC":
             messageFilterSet.add(f"{trigger.trigger}")
+            killCountTriggerSet.add(trigger.trigger)
         else:
             logging.warning(f"Unknown trigger type: {trigger.type}")
             pass
 
     data["triggers"] = list(triggerSet)
+    data["killCountTriggers"] = list(killCountTriggerSet)
     data["messageFilters"] = list(messageFilterSet)
     return json.dumps(data, cls=ModelEncoder)
