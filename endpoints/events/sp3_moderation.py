@@ -508,6 +508,9 @@ def move_team_to_tile(event_id, team_id):
         # Move the team to the specified tile
         save.previousTile = save.currentTile
         save.currentTile = uuid.UUID(data["tile_id"])
+        tile: SP3EventTiles = SP3EventTiles.query.filter_by(id=save.currentTile).first()
+        region = tile.region_id
+        save.islandId = region
         
         # Save the updated team data
         save_team_data(team, save)
