@@ -10,6 +10,72 @@ from helper.helpers import ModelEncoder
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
+def get_tile_name(tile_id):
+    tile = SP3EventTiles.query.filter_by(id=tile_id).first()
+    return tile.name if tile else "Unknown Tile"
+
+def get_region_name(region_id):
+    region = SP3Regions.query.filter_by(id=region_id).first()
+    return region.name if region else "Unknown Region"
+
+def get_tile_description(tile_id):
+    tile = SP3EventTiles.query.filter_by(id=tile_id).first()
+    return tile.description if tile else "No description available"
+
+def get_challenge_progress_string(challenge_id, tile_progress):
+    challenge = EventChallenges.query.filter_by(id=challenge_id).first()
+    if not challenge:
+        return "Unknown challenge"
+
+    task_strings = []
+
+    tasks = challenge.tasks
+    for task_id in tasks:
+        task = EventTasks.query.filter_by(id=task_id).first()
+        if task:
+            triggers = task.triggers
+            trigger_list = []
+            for trigger_id in triggers:
+                trigger = EventTriggers.query.filter_by(id=trigger_id).first()
+                if trigger.type == "DROP":
+                    trigger_list.append(f"{trigger.trigger}{" from " + trigger.source if trigger.source else ""}")
+                elif trigger.type == "KC":
+                    trigger_list.append(f"{trigger.trigger} KC")
+            triggers_message = " OR ".join(trigger_list)
+        
+            if str(challenge_id) in tile_progress:
+                progress = tile_progress[str(challenge_id)]
+                if task_id in progress:
+                    task_progress = progress[task_id]
+                    task_strings.append(f"{task_progress}/{task.quantity} {triggers_message}")
+                    continue
+            
+            task_strings.append(f"0/{task.quantity} {triggers_message}")
+
+    return task_strings
+
+def get_team_tile_challenges(save):
+    if save.currentChallenges:
+        return save.currentChallenges
+    
+    if save.currentTile:
+        challenges = SP3EventTileChallengeMapping.query.filter_by(
+            tile_id=save.currentTile,
+            type="TILE"
+        ).all()
+
+        return [challenge.challenge_id for challenge in challenges]
+    
+    return []
+
+def get_team_regional_challenges(save):
+    region = SP3Regions.query.filter_by(id=save.islandId).first()
+    if not region:
+        return []
+    
+    return region.challenges if region.challenges else []
+
 @app.route("/events/<event_id>/users/<discord_id>/team", methods=['GET'])
 def get_user_team(event_id, discord_id):
     """Get the team associated with a Discord ID"""
@@ -96,6 +162,21 @@ def get_team_stats(event_id, team_id):
         else:
             logging.warning(f"Current region information not found for island ID {save.islandId}")
         
+        star_locations: list[dict] = []
+        star_tiles = event.data["star_tiles"]
+        for star_tile in star_tiles:
+            tile = SP3EventTiles.query.filter_by(
+                event_id=event_id,
+                id=star_tile
+            ).first()
+            if tile:
+                star_locations.append({
+                    "tile": str(tile.id),
+                    "name": tile.name,
+                    "description": tile.description,
+                    "region": get_region_name(tile.region_id)
+                })
+
         stats = {
             "team_name": team.name,
             "captain": str(team.captain),
@@ -112,7 +193,8 @@ def get_team_stats(event_id, team_id):
             "buffs": save.buffs,
             "debuffs": save.debuffs,
             "items": save.itemList,
-            "is_rolling": save.isRolling
+            "is_rolling": save.isRolling,
+            "event_star_locations": star_locations
         }
         
         logging.info(f"Successfully retrieved stats for team {team.name} (ID: {team_id})")
@@ -138,18 +220,54 @@ def get_team_tile_progress(event_id, team_id):
         # Get team data
         save = SaveData.from_dict(team.data)
 
-        def get_tile_name(tile_id):
-            tile = SP3EventTiles.query.filter_by(id=tile_id, event_id=event_id).first()
-            return tile.name if tile else "Unknown Tile"
+        tile_challenges = get_team_tile_challenges(save)
+        region_challenges = get_team_regional_challenges(save)
+
+        tile_progress = []
+        for challenge in tile_challenges:
+            progress_strings = get_challenge_progress_string(challenge, save.tileProgress)
+            for progress_string in progress_strings:
+                tile_progress.append(progress_string)
+
+        region_progress = []
+        for challenge in region_challenges:
+            progress_strings = get_challenge_progress_string(challenge, save.tileProgress)
+            for progress_string in progress_strings:
+                region_progress.append(progress_string)
+
+        response = {
+            "team_name": team.name,
+            "current_tile": get_tile_name(save.currentTile),
+            "current_region": get_region_name(save.islandId),
+            "tile_description": get_tile_description(save.currentTile),
+            "tile_progress": tile_progress,
+            "region_progress": region_progress,
+            "is_tile_completed": save.isTileCompleted,
+            "is_rolling": save.isRolling,
+        }
         
-        def get_region_name(region_id):
-            region = SP3Regions.query.filter_by(id=region_id, event_id=event_id).first()
-            return region.name if region else "Unknown Region"
+        return jsonify(response), 200
+    except Exception as e:
+        logging.error(f"Error getting tile progress: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/events/<event_id>/teams/<team_id>/total-progress", methods=['GET'])
+def get_team_total_progress(event_id, team_id):
+    """Get the total progress of a team in the event"""
+    try:
+        # Check if event exists and is a SP3 event
+        event = Events.query.filter_by(id=event_id, type="STABILITY_PARTY").first()
+        if not event:
+            return jsonify({"error": "Event not found or not a Stability Party event"}), 404
         
-        def get_tile_description(tile_id):
-            tile = SP3EventTiles.query.filter_by(id=tile_id, event_id=event_id).first()
-            return tile.description if tile else "No description available"
+        # Check if team exists and belongs to this event
+        team = EventTeams.query.filter_by(id=team_id, event_id=event_id).first()
+        if not team:
+            return jsonify({"error": "Team not found or does not belong to this event"}), 404
         
+        # Get team data
+        save = SaveData.from_dict(team.data)
+
         def get_challenge_progress_string(challenge_id, tile_progress):
             challenge = EventChallenges.query.filter_by(id=challenge_id).first()
             if not challenge:
@@ -181,57 +299,27 @@ def get_team_tile_progress(event_id, team_id):
                     task_strings.append(f"0/{task.quantity} {triggers_message}")
 
             return task_strings
+
+        # Get all tile progress
+        for challenge_id, tasks in save.tileProgress.items():
+            for task_id, task_progress in tasks.items():
+                if task_progress >= 1:
+                    save.isTileCompleted = True
+                    break
         
-        def get_team_tile_challenges(save):
-            if save.currentChallenges:
-                return save.currentChallenges
-            
-            if save.currentTile:
-                challenges = SP3EventTileChallengeMapping.query.filter_by(
-                    tile_id=save.currentTile,
-                    type="TILE"
-                ).all()
-
-                return [challenge.challenge_id for challenge in challenges]
-            
-            return []
-        
-        def get_team_regional_challenges(save):
-            region = SP3Regions.query.filter_by(id=save.islandId, event_id=event_id).first()
-            if not region:
-                return []
-            
-            return region.challenges if region.challenges else []
-
-        tile_challenges = get_team_tile_challenges(save)
-        region_challenges = get_team_regional_challenges(save)
-
-        tile_progress = []
-        for challenge in tile_challenges:
-            progress_strings = get_challenge_progress_string(challenge, save.tileProgress)
-            for progress_string in progress_strings:
-                tile_progress.append(progress_string)
-
-        region_progress = []
-        for challenge in region_challenges:
-            progress_strings = get_challenge_progress_string(challenge, save.tileProgress)
-            for progress_string in progress_strings:
-                region_progress.append(progress_string)
-
-        response = {
-            "team_name": team.name,
-            "current_tile": get_tile_name(save.currentTile),
-            "current_region": get_region_name(save.islandId),
-            "tile_description": get_tile_description(save.currentTile),
-            "tile_progress": tile_progress,
-            "region_progress": region_progress,
-            "is_tile_completed": save.isTileCompleted,
+        # Calculate total progress
+        total_progress = {
+            "stars": save.stars,
+            "coins": save.coins,
+            "completed_tiles": save.isTileCompleted,
             "is_rolling": save.isRolling,
+            "current_tile": str(save.currentTile),
+            "current_region": str(save.islandId)
         }
         
-        return jsonify(response), 200
+        return jsonify(total_progress), 200
     except Exception as e:
-        logging.error(f"Error getting tile progress: {str(e)}")
+        logging.error(f"Error getting total progress: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/events/<event_id>/progress", methods=['GET'])
