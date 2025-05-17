@@ -1,7 +1,7 @@
 from app import app, db
 from flask import request, jsonify
 from models.models import Events, EventTeams, EventTeamMemberMappings, Users
-from models.stability_party_3 import SP3Regions, SP3EventTiles
+from models.stability_party_3 import SP3Regions, SP3EventTiles, SP3EventTileChallengeMapping
 from event_handlers.stability_party.stability_party_handler import SaveData, save_team_data
 from sqlalchemy.orm.attributes import flag_modified
 from helper.discord_helper import create_discord_role, create_discord_text_channel, create_discord_voice_channel, get_event_category_id
@@ -9,6 +9,7 @@ from helper.set_discord_role import add_discord_role
 import uuid
 import logging
 import json
+import random
 import os
 from datetime import datetime, timezone
 from helper.helpers import ModelEncoder
@@ -400,6 +401,8 @@ def force_complete_tile(event_id, team_id):
         # Force complete the current tile
         save.isTileCompleted = True
         save.isRolling = False
+
+        save.currentChallenges = []
         
         # Save the updated team data
         save_team_data(team, save)
@@ -511,6 +514,13 @@ def move_team_to_tile(event_id, team_id):
         tile: SP3EventTiles = SP3EventTiles.query.filter_by(id=save.currentTile).first()
         region = tile.region_id
         save.islandId = region
+
+        # Set the random challenges if the new tile is a RANDOM tile
+        if tile.data["category"] == "RANDOM":
+            challenges = SP3EventTileChallengeMapping.query.filter_by(tile_id=tile.id).all()
+            save.currentChallenges = [random.choice(challenges).challenge_id]
+        else:
+            save.currentChallenges = []
         
         # Save the updated team data
         save_team_data(team, save)
@@ -539,21 +549,8 @@ def undo_team_roll(event_id, team_id):
         
         # Load team data
         save = SaveData.from_dict(team.data)
-        
-        # Undo the last roll by moving back to the previous tile
-        save.currentTile = save.previousTile
-        save.dice = []
-        save.modifier = 0
-        save.isRolling = False
-        save.isTileCompleted = False
-        save.currentChallenge = None
-        
-        # Clear any progress on the current tile
-        current_tile_challenges = {}
-        for challenge_id, tasks in save.tileProgress.items():
-            if challenge_id != str(save.currentTile):
-                current_tile_challenges[challenge_id] = tasks
-        save.tileProgress = current_tile_challenges
+
+        # TODO: Undo roll logic
         
         # Save the updated team data
         save_team_data(team, save)
