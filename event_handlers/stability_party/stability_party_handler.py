@@ -882,6 +882,10 @@ def _handle_star_action(event_id, team_id, save, data):
         logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
         return {"error": "Not enough coins to purchase star"}, 400
     
+    if not is_star_tile(save.currentTile):
+        logging.error(f"Current tile {save.currentTile} is not a star tile.")
+        return {"error": "Current tile is not a star tile"}, 400
+    
     # Deduct coins for the star purchase
     save.coins -= 100
     save.stars += 1
@@ -921,10 +925,12 @@ def _handle_star_action(event_id, team_id, save, data):
     db.session.commit()
 
     team_name = EventTeams.query.filter_by(id=team_id).first().name
-    old_star_tile_name = SP3EventTiles.query.filter_by(id=old_star_tile_id).first().name
-    old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile_id).first().name
-    new_star_tile_name = SP3EventTiles.query.filter_by(id=new_star_tile_id).first().name
-    new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile_id).first().name
+    old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
+    old_star_tile_name = old_star_tile.name
+    old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile.region_id).first().name
+    new_star_tile = SP3EventTiles.query.filter_by(id=new_star_tile_id).first()
+    new_star_tile_name = new_star_tile.name
+    new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile.region_id).first().name
     send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
 
     # Do NOT consume a move for the star interaction itself - only movement consumes moves
