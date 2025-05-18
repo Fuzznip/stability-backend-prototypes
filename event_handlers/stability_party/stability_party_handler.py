@@ -920,6 +920,13 @@ def _handle_star_action(event_id, team_id, save, data):
     flag_modified(event, "data")
     db.session.commit()
 
+    team_name = EventTeams.query.filter_by(id=team_id).first().name
+    old_star_tile_name = SP3EventTiles.query.filter_by(id=old_star_tile_id).first().name
+    old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile_id).first().name
+    new_star_tile_name = SP3EventTiles.query.filter_by(id=new_star_tile_id).first().name
+    new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile_id).first().name
+    send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
+
     # Do NOT consume a move for the star interaction itself - only movement consumes moves
     # Update roll state
     if not save.roll_state:
