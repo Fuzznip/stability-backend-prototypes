@@ -103,9 +103,37 @@ def is_challenge_completed(challenge: EventChallenges, task: EventTasks, save: S
     return False
 
 def create_region_challenge_notification(challenge: EventChallenges, event: Events, team: EventTeams, save: SaveData, submission: EventSubmission) -> NotificationResponse:
-    # Placeholder - Implement actual notification
-    logging.info(f"Region challenge {challenge.id} completed by team {team.name}")
-    return None
+    region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
+    if not region:
+        logging.error(f"Region not found for region ID {save.islandId} during notification creation.")
+        return None
+
+    # Example rewards - customize as needed
+    coins_earned = 50 
+    dice_earned = [6] # e.g., a D4
+
+    save.coins += coins_earned
+    # Logic for adding dice: append, replace, or based on rules
+    # For now, let's assume it replaces or is the only dice they get from this
+    save.dice = dice_earned 
+    save.isTileCompleted = True
+    save.currentChallenges = []
+
+    fields = [
+        NotificationField(name="Stars", value=save.stars, inline=True),
+        NotificationField(name="Coins", value=save.coins, inline=True),
+        NotificationField(name="Island", value=region.name, inline=True),
+        NotificationField(name="New Dice", value=f"Earned a {dice_earned[0]} sided die!", inline=True)
+    ]
+
+    return NotificationResponse(
+        threadId=event.thread_id,
+        title=f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}",
+        description=f"For completing the Region Challenge on **{region.name}**, {team.name} have earned {coins_earned} coins and a {dice_earned[0]}-sided die!",
+        color=0x992D22, # Example color
+        author=NotificationAuthor(name=f"{team.name}: {region.name}", icon_url=team.image if team.image else None),
+        fields=fields,
+    )
 
 def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeMapping, event: Events, team: EventTeams, save: SaveData, submission: EventSubmission) -> NotificationResponse:
     tile = SP3EventTiles.query.filter(SP3EventTiles.id == save.currentTile).first()
@@ -132,7 +160,7 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
         NotificationField(name="Stars", value=save.stars, inline=True),
         NotificationField(name="Coins", value=save.coins, inline=True),
         NotificationField(name="Island", value=region.name, inline=True),
-        NotificationField(name="New Dice", value=str(dice_earned), inline=True)
+        NotificationField(name="New Dice", value=f"Earned a {dice_earned[0]} sided die!", inline=True)
     ]
 
     return NotificationResponse(
@@ -169,7 +197,63 @@ def create_coin_challenge_notification(challenge_mapping: SP3EventTileChallengeM
         fields=fields,
     )
 
-def progress_challenge(challengeMapping: SP3EventTileChallengeMapping, event: Events, team: EventTeams, save: SaveData, submission: EventSubmission) -> NotificationResponse:
+def progress_region_challenge(challenge: uuid.UUID, event: Events, team: EventTeams, save: SaveData, submission: EventSubmission) -> NotificationResponse:
+    challenge = EventChallenges.query.filter(EventChallenges.id == challenge).first()
+    if challenge is None:
+        logging.warning(f"Challenge definition not found for ID {challenge}")
+        return None
+    
+    # Ensure tileProgress structure exists for the current challenge
+    challenge_id_str = str(challenge.id)
+    if challenge_id_str not in save.tileProgress:
+        save.tileProgress[challenge_id_str] = {}
+
+    made_progress_on_a_task = False
+    for task_id_str in challenge.tasks:
+        task = EventTasks.query.filter(EventTasks.id == task_id_str).first()
+        if not task:
+            logging.warning(f"Task definition {task_id_str} not found for challenge {challenge_id_str}")
+            continue
+
+        # Ensure progress structure for this task
+        if str(task.id) not in save.tileProgress[challenge_id_str]:
+            save.tileProgress[challenge_id_str][str(task.id)] = 0
+        
+        task_matched_submission = False
+        for trigger_id_str in task.triggers:
+            trigger = EventTriggers.query.filter(EventTriggers.id == trigger_id_str).first()
+            if not trigger:
+                logging.warning(f"Trigger definition {trigger_id_str} not found for task {task_id_str}")
+                continue
+
+            # Normalize source for comparison
+            trigger_source_norm = trigger.source.lower() if trigger.source else ""
+            submission_source_norm = submission.source.lower() if submission.source else ""
+            
+            # If trigger source is empty, it can match any submission source (wildcard)
+            # OR if trigger source is specified, it must match submission source
+            source_matches = (not trigger_source_norm) or (trigger_source_norm == submission_source_norm)
+
+            if trigger.trigger.lower() == submission.trigger.lower() and source_matches:
+                task_matched_submission = True
+                break
+
+        if task_matched_submission:
+            made_progress_on_a_task = True
+            current_progress = save.tileProgress[challenge_id_str].get(str(task.id), 0)
+            new_progress = current_progress + submission.quantity
+            save.tileProgress[challenge_id_str][str(task.id)] = new_progress
+            logging.info(f"Team {team.id} progressed task {task.id} for challenge {challenge.id} to {new_progress}/{task.quantity}")
+
+            # Check if this specific task completion completes the challenge (for OR type)
+            # For AND type, is_challenge_completed will check all tasks.
+            if is_challenge_completed(challenge, task, save):
+                logging.info(f"Challenge {challenge.id} (type: {challenge.type}) completed by team {team.id} due to task {task.id} progress.")
+                return create_region_challenge_notification(challenge, event, team, save, submission)
+            
+    return None
+
+def progress_tile_challenge(challengeMapping: SP3EventTileChallengeMapping, event: Events, team: EventTeams, save: SaveData, submission: EventSubmission) -> NotificationResponse:
     challenge = EventChallenges.query.filter(EventChallenges.id == challengeMapping.challenge_id).first()
     if challenge is None:
         logging.warning(f"Challenge definition not found for ID {challengeMapping.challenge_id}")
@@ -240,14 +324,29 @@ def progress_challenge(challengeMapping: SP3EventTileChallengeMapping, event: Ev
 
     return None # No notification if challenge not completed by this submission
 
+def get_region_challenges(save: SaveData):
+    region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
+    if not region:
+        logging.error(f"Region not found for islandId {save.islandId} during challenge retrieval.")
+        return []
+    
+    return region.challenges if region.challenges else []
+
 def progress_team(event: Events, team: EventTeams, save: SaveData, submission: EventSubmission) -> list[NotificationResponse]:
     notifications: list[NotificationResponse] = []
     if save.currentTile is None:
         logging.warning(f"Team {team.id} has no currentTile, cannot progress challenges.")
         return notifications
+    
+    for challenge in get_region_challenges(save):
+        notif = progress_region_challenge(challenge, event, team, save, submission)
+        if notif is not None:
+            notifications.append(notif)
+            # If a REGION type challenge completed, we might want to stop processing other challenges
+            # on this tile for this submission.
 
     for challenge_mapping in get_team_challenges(save): # This gets challenges for the current tile
-        notif = progress_challenge(challenge_mapping, event, team, save, submission)
+        notif = progress_tile_challenge(challenge_mapping, event, team, save, submission)
         if notif is not None:
             notifications.append(notif)
             # If a TILE type challenge mapping completed the tile, subsequent challenges on this tile for THIS submission
