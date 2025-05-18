@@ -136,8 +136,11 @@ class SaveData:
     textChannelId: str
     voiceChannelId: str
 
+    # This is called tileProgress but it is essentially a challenge progress tracker
+    # Maps challenge IDs to task progress
+    # e.g., {challenge_id: {task_id: progress}}
     tileProgress: dict[str, dict[str, int]]
-    
+
     roll_state: RollState | None = None  # Optional roll state for tracking current roll
 
     def to_dict(self) -> dict:
