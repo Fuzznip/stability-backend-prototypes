@@ -68,7 +68,7 @@ def is_challenge_completed(challenge: EventChallenges, task: EventTasks, save: S
                 # If it's "complete one of these tasks", then once one is done, the challenge is done.
                 # If it's "do X of this OR Y of that", then decrementing might make sense if tasks can be repeated for same challenge.
                 # For now, assuming simple completion.
-                # save.tileProgress[challengeId][taskId] -= task.quantity # Reconsider this line's purpose
+                save.tileProgress[challengeId][taskId] -= task.quantity
                 return True
         case "AND":
             # Check all tasks for an AND challenge
@@ -166,7 +166,7 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
     return NotificationResponse(
         threadId=event.thread_id,
         title=f"{submission.rsn}: {submission.trigger} from {submission.source}",
-        description=f"For completing the tile: **{tile.name}**, you have earned {coins_earned} coins and a {dice_earned[0]}-sided die!",
+        description=f"For completing the tile: **{tile.name}**, {team.name} have earned {coins_earned} coins and a {dice_earned[0]}-sided die!",
         color=0x992D22, # Example color
         author=NotificationAuthor(name=f"{team.name}: {tile.name} ({region.name})", icon_url=team.image if team.image else None),
         fields=fields,
@@ -1188,6 +1188,28 @@ def _complete_roll(event_id, team_id, save: SaveData) -> dict:
             if current_tile_obj.data.get("category", "ANY") == "RANDOM":
                 # Pick a random challenge to be the tile challenge
                 save.currentChallenges = [random.choice(challenge_mappings).challenge_id]
+                task_strings = []
+
+                for challenge_id in save.currentChallenges:
+                    challenge = EventChallenges.query.filter_by(id=challenge_id).first()
+                    tasks = challenge.tasks
+                    for task_id in tasks:
+                        task = EventTasks.query.filter_by(id=task_id).first()
+                        if task:
+                            triggers = task.triggers
+                            trigger_list = []
+                            for trigger_id in triggers:
+                                trigger = EventTriggers.query.filter_by(id=trigger_id).first()
+                                if trigger.type == "DROP":
+                                    trigger_list.append(f"{trigger.trigger}{" from " + trigger.source if trigger.source else ""}")
+                                elif trigger.type == "KC":
+                                    trigger_list.append(f"{trigger.trigger} KC")
+                            triggers_message = " OR ".join(trigger_list)
+                            
+                            task_strings.append(f"{task.quantity}x {triggers_message}")
+
+                tile_info["description"] = f"Random challenge selected:\n{'\n'.join(task_strings)}"
+                logging.info(f"Random challenge selected for tile {current_tile_obj.name}: {save.currentChallenges}")
     else:
         logging.warning(f"Final tile ID {save.currentTile} not found. Cannot determine challenges.")
         tile_info = {"id": str(save.currentTile), "name": "Unknown Tile (Not Found)"}
