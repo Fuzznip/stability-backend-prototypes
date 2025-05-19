@@ -18,6 +18,7 @@ from event_handlers.stability_party.save_data import SaveData, save_team_data
 from event_handlers.stability_party.item_definitions import (
     ITEM_HANDLERS, get_item, get_all_items
 )
+from event_handlers.stability_party.send_event_notification import send_event_notification
 
 # Item rarity weights for random selection
 RARITY_WEIGHTS = {
@@ -302,6 +303,7 @@ def use_item(event_id: str, team_id: str, item_index: int) -> Dict[str, Any]:
         # Call the item handler function
         handler = ITEM_HANDLERS[handler_name]
         result = handler(event_id, team_id, save, item_entry)
+        send_event_notification(event_id, team_id, f"{item['name']} used by {team.name}!", result.get("message", ""))
 
         if item.get("requires_selection", False):
             save.pendingItemActivation = {

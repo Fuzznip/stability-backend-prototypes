@@ -4,39 +4,13 @@ from models.models import Events, EventTeams, EventTeamMemberMappings, EventChal
 from models.stability_party_3 import SP3Regions, SP3EventTiles, SP3EventTileChallengeMapping
 from event_handlers.stability_party.item_system import generate_shop_inventory, get_item_by_id, add_item_to_inventory
 from event_handlers.stability_party.save_data import RollState, SaveData, save_team_data
+from event_handlers.stability_party.send_event_notification import send_event_notification
 import uuid
 import logging
 import random
 import requests
 from datetime import datetime, timezone
 from sqlalchemy.orm.attributes import flag_modified  # Add this import
-
-def send_event_notification(event_id: uuid, team_id: uuid, title: str, message: str) -> None:
-    event = Events.query.filter_by(id=event_id).first()
-    team = EventTeams.query.filter_by(id=team_id).first()
-    webhook = event.data.get("webhook")
-    if webhook:
-        # Placeholder for sending a notification to the event's webhook
-        logging.info(f"Sending notification to {webhook}: {title} - {message}")
-        image_url = team.image if team.image else "https://i.imgur.com/SBTOvfk.png"
-
-        data = {
-            "embeds": [
-                {
-                    "title": "Stability Party 3",
-                    "description": f"{team.name} has {message}",
-                    "color": 0x992D22,  # Example color
-                    "thumbnail": {
-                        "url": image_url
-                    },
-                }
-            ]
-        }
-
-        requests.post(webhook, json=data)
-    else:
-        logging.warning(f"No webhook URL found for event {event.id}. Cannot send notification.")
-        return
 
 def get_team_challenges(save: SaveData) -> list[SP3EventTileChallengeMapping]:
     challenges: list[SP3EventTileChallengeMapping] = []
@@ -110,7 +84,8 @@ def create_region_challenge_notification(challenge: EventChallenges, event: Even
 
     # Example rewards - customize as needed
     coins_earned = 50 
-    dice_earned = [6] # e.g., a D4
+    # Base dice - a D6 if no dice, otherwise use existing dice
+    dice_earned = [6] if not save.dice else save.dice
 
     save.coins += coins_earned
     # Logic for adding dice: append, replace, or based on rules
@@ -147,7 +122,8 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
 
     # Example rewards - customize as needed
     coins_earned = 10 
-    dice_earned = [4] # e.g., a D4
+    # Base dice - a D4 if no dice, otherwise use existing dice
+    dice_earned = [4] if not save.dice else save.dice
 
     save.coins += coins_earned
     # Logic for adding dice: append, replace, or based on rules
@@ -249,6 +225,7 @@ def progress_region_challenge(challenge: uuid.UUID, event: Events, team: EventTe
             # For AND type, is_challenge_completed will check all tasks.
             if is_challenge_completed(challenge, task, save):
                 logging.info(f"Challenge {challenge.id} (type: {challenge.type}) completed by team {team.id} due to task {task.id} progress.")
+
                 return create_region_challenge_notification(challenge, event, team, save, submission)
             
     return None
@@ -344,6 +321,7 @@ def progress_team(event: Events, team: EventTeams, save: SaveData, submission: E
             notifications.append(notif)
             # If a REGION type challenge completed, we might want to stop processing other challenges
             # on this tile for this submission.
+            return notifications # We are stopping processing for other challenges here. In the future we can add a flag to progress other tiles with the submission but not complete anything
 
     for challenge_mapping in get_team_challenges(save): # This gets challenges for the current tile
         notif = progress_tile_challenge(challenge_mapping, event, team, save, submission)
@@ -798,7 +776,7 @@ def _prepare_shop_interaction(event_id, team_id, save, current_tile):
     save.roll_state.action_required = RollState.ACTION_TYPES["SHOP"]
     # Actual shop items would be generated here
 
-    items = [] #generate_shop_inventory(event_id, shop_tier=1, item_count=3)
+    items = []#generate_shop_inventory(event_id, shop_tier=1, item_count=3)
 
     # get region name
     region = SP3Regions.query.filter(SP3Regions.id == current_tile.region_id).first()
@@ -809,6 +787,7 @@ def _prepare_shop_interaction(event_id, team_id, save, current_tile):
 
     save.roll_state.action_data = {
         "message": f"Welcome to the {region_name} shop!",
+        "team_items": save.itemList,
         "items": items,
         "coins": save.coins,
         "moves_remaining": save.roll_state.roll_remaining,
@@ -840,6 +819,11 @@ def _handle_shop_action(event_id, team_id, save, data):
         logging.error(f"Not enough coins to purchase item {purchased_item_id}. Required: {purchased_item_price}, Available: {save.coins}")
         return {"error": "Not enough coins to purchase item"}, 400
     
+    # Check the team's amount of items
+    if len(save.itemList) >= 3:
+        logging.error(f"Cannot purchase item {purchased_item_id} - inventory full (3 items max).")
+        return {"error": "Inventory full (3 items max)"}, 400
+    
     # Deduct coins for the purchase
     save.coins -= purchased_item_price
     item = get_item_by_id(purchased_item_id) # Placeholder for actual item retrieval logic
@@ -847,7 +831,7 @@ def _handle_shop_action(event_id, team_id, save, data):
 
     add_item_to_inventory(event_id, team_id, purchased_item_id)
 
-    send_event_notification(event_id, team_id, "Item Purchased!", f"{item.get('name')} has been purchased for {purchased_item_price} coins!")
+    send_event_notification(event_id, team_id, "Item Purchased!", f"purchased {item.get('name')} for {purchased_item_price} coins!")
 
     roll_remaining_from_client = save.roll_state.roll_remaining
     # Update roll state
@@ -952,6 +936,12 @@ def _prepare_dock_interaction(event_id, team_id, save, current_tile: SP3EventTil
 
     region = SP3Regions.query.filter(SP3Regions.id == current_tile.region_id).first()
     charter_data = region.data.get("charter", [])
+    sailing_ticket = False
+    for buff in save.buffs:
+        if buff.get("type", "") == "sailing_ticket":
+            sailing_ticket = True
+            break
+    
     destinations = []
     for destination_id, cost in charter_data.items():
         region = SP3Regions.query.filter(SP3Regions.id == destination_id).first()
@@ -959,7 +949,7 @@ def _prepare_dock_interaction(event_id, team_id, save, current_tile: SP3EventTil
             "id": destination_id,
             "name": region.name,
             "description": region.description,
-            "cost": cost,
+            "cost": cost if not sailing_ticket else 0,
         }
         destinations.append(destination)
 
@@ -982,12 +972,32 @@ def _handle_dock_action(event_id, team_id, save, data):
         # save.currentTile = new_island_start_tile_id
         # save.islandId = new_island_id
         # save.isTileCompleted = False  # Or check challenges on new tile
+        region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
 
-        save.coins -= data["cost"]
-        save.islandId = uuid.UUID(data["destinationId"])
+        if region.data.get("charter", {}).get(data["destinationId"], 0) != data["cost"]:
+            sailing_ticket = False
+            print(save.buffs)
+            for i, buff in enumerate(save.buffs):
+                print(buff, i)
+                if buff.get("type", "") == "sailing_ticket":
+                    sailing_ticket_buff_index = i
+                    sailing_ticket = True
+                    break
+            
+            if sailing_ticket and data["cost"] == 0:
+                # If the cost is 0, we can assume they are using a sailing ticket
+                save.coins -= data["cost"]
+                save.islandId = uuid.UUID(data["destinationId"])
+                # Get the buff reference in the save data
+                save.buffs[sailing_ticket_buff_index]["uses"] -= 1
+                if save.buffs[sailing_ticket_buff_index]["uses"] <= 0:
+                    # Remove the buff if no uses left
+                    del save.buffs[sailing_ticket_buff_index]
+            else: # Otherwise, they are trying to cheat the system
+                logging.error(f"Invalid cost for chartering to {data['destinationId']}. Expected {region.data['charter'][data['destinationId']]}, got {data['cost']}")
+                return {"error": "Invalid cost for chartering to new island."}, 400
 
         # Get the region's start tile
-        region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
         if region:
             start_tile = db.session.query(SP3EventTiles).filter(
                 SP3EventTiles.event_id == event_id,
@@ -1000,7 +1010,7 @@ def _handle_dock_action(event_id, team_id, save, data):
             else:
                 logging.error(f"No start tile found for region {region.name} (ID: {region.id})")
                 return {"error": "No start tile found for the selected island."}, 400
-            
+
         # Remove 1 from the roll remaining for the dock interaction
         roll_remaining_from_client = save.roll_state.roll_remaining
         if not save.roll_state:
@@ -1229,7 +1239,9 @@ def _complete_roll(event_id, team_id, save: SaveData) -> dict:
         save.isTileCompleted = True
         
     # Mark roll as complete and update SaveData
-    save.isRolling = False 
+    save.isRolling = False
+    # Clear dice (will be set based on rewards and buffs in future methods)
+    save.dice = []
     
     if save.roll_state:
         # Reset roll state
