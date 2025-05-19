@@ -856,7 +856,8 @@ def _prepare_star_interaction(event_id, team_id, save, current_tile):
     save.roll_state.action_data = {
         "message": f"Star available at {current_tile.name}!",
         "price": 100,
-        "roll_remaining": save.roll_state.roll_remaining
+        "roll_remaining": save.roll_state.roll_remaining,
+        "coins": save.coins
     }
     return save.roll_state.to_dict()
 
@@ -867,20 +868,11 @@ def _handle_star_action(event_id, team_id, save, data):
 
     if data.get("action") == "buy":
         if save.coins < 100:
-            logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
-            return {"error": "Not enough coins to purchase star"}, 400
-        
-        if not is_star_tile(save.currentTile):
-            logging.error(f"Current tile {save.currentTile} is not a star tile.")
-            return {"error": "Current tile is not a star tile"}, 400
-        
-        # Deduct coins for the star purchase
-        save.coins -= 100
-        save.stars += 1
-    if data.get("action") == "buy":
-        if save.coins < 100:
-            logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
-            return {"error": "Not enough coins to purchase star"}, 400
+            logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}. Progressing anyways...")
+            
+            if save.roll_state.roll_remaining > 0:
+                return _process_next_move(event_id, team_id, save)
+            return _complete_roll(event_id, team_id, save)
         
         if not is_star_tile(save.currentTile):
             logging.error(f"Current tile {save.currentTile} is not a star tile.")
@@ -890,10 +882,6 @@ def _handle_star_action(event_id, team_id, save, data):
         save.coins -= 100
         save.stars += 1
 
-        # Move the star to a new tile
-        new_star_tile_id = None
-        all_regions = SP3Regions.query.all()
-        applicable_regions = []
         # Move the star to a new tile
         new_star_tile_id = None
         all_regions = SP3Regions.query.all()
@@ -935,34 +923,7 @@ def _handle_star_action(event_id, team_id, save, data):
         event.data["star_tiles"] = star_tiles
         flag_modified(event, "data")
         db.session.commit()
-        # Filter out tiles that are shops, docks, or already have stars
-        applicable_region_tiles = [tile for tile in applicable_region_tiles if not is_shop_tile(tile.id) and not is_dock_tile(tile.id) and not is_star_tile(tile.id)]
-        logging.info(f"Applicable region tiles for star placement: {[tile.name for tile in applicable_region_tiles]}")
-        if applicable_region_tiles:
-            new_star_tile = random.choice(applicable_region_tiles)
-            new_star_tile_id = new_star_tile.id
-            logging.info(f"Star moved to tile {new_star_tile.name} (ID: {new_star_tile_id})")
-        else:
-            logging.error("No valid tiles available for star placement.")
-            return {"error": "No valid tiles available for star placement"}, 400
-        
-        old_star_tile_id = save.currentTile
-        event = Events.query.filter_by(id=event_id).first()
-        star_tiles = event.data.get("star_tiles")
-        star_tiles.remove(str(old_star_tile_id))
-        star_tiles.append(str(new_star_tile_id))
-        event.data["star_tiles"] = star_tiles
-        flag_modified(event, "data")
-        db.session.commit()
 
-        team_name = EventTeams.query.filter_by(id=team_id).first().name
-        old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
-        old_star_tile_name = old_star_tile.name
-        old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile.region_id).first().name
-        new_star_tile = SP3EventTiles.query.filter_by(id=new_star_tile_id).first()
-        new_star_tile_name = new_star_tile.name
-        new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile.region_id).first().name
-        send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
         team_name = EventTeams.query.filter_by(id=team_id).first().name
         old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
         old_star_tile_name = old_star_tile.name
