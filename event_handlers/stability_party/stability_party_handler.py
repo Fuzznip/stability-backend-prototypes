@@ -510,8 +510,11 @@ def roll_dice_progression(event_id_str: str, team_id_str: str, data: dict = None
             return {"error": f"Unknown or unhandled action type: {action_type}"}, 400
 
         # Save data after any action that modified 'save' object and did not error
-        if "error" not in response_payload: 
+        if "error" not in response_payload:
+            logging.info(f"Action '{action_type}' processed successfully for team {team_id}. Saving state.")
             save_team_data(team, save)
+        else:
+            logging.error(f"Error processing action '{action_type}' for team {team_id}: {response_payload['error']}")
         
         status_code = 400 if "error" in response_payload else 200
         return response_payload, status_code
@@ -862,62 +865,62 @@ def _handle_star_action(event_id, team_id, save, data):
     # Actual star purchase logic
     roll_remaining_from_client = save.roll_state.roll_remaining
 
-    if save.coins < 100:
-        logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
-        return {"error": "Not enough coins to purchase star"}, 400
-    
-    if not is_star_tile(save.currentTile):
-        logging.error(f"Current tile {save.currentTile} is not a star tile.")
-        return {"error": "Current tile is not a star tile"}, 400
-    
-    # Deduct coins for the star purchase
-    save.coins -= 100
-    save.stars += 1
+    if data.get("action") == "buy":
+        if save.coins < 100:
+            logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
+            return {"error": "Not enough coins to purchase star"}, 400
+        
+        if not is_star_tile(save.currentTile):
+            logging.error(f"Current tile {save.currentTile} is not a star tile.")
+            return {"error": "Current tile is not a star tile"}, 400
+        
+        # Deduct coins for the star purchase
+        save.coins -= 100
+        save.stars += 1
 
-    # Move the star to a new tile
-    new_star_tile_id = None
-    all_regions = SP3Regions.query.all()
-    applicable_regions = []
+        # Move the star to a new tile
+        new_star_tile_id = None
+        all_regions = SP3Regions.query.all()
+        applicable_regions = []
 
-    for region in all_regions:
-        if not is_region_populated(region.id):
-            applicable_regions.append(region.id)
-            
-    applicable_region_tiles = SP3EventTiles.query.filter(
-        SP3EventTiles.event_id == event_id,
-        SP3EventTiles.region_id.in_(applicable_regions),
-    ).all()
+        for region in all_regions:
+            if not is_region_populated(region.id):
+                applicable_regions.append(region.id)
+                
+        applicable_region_tiles = SP3EventTiles.query.filter(
+            SP3EventTiles.event_id == event_id,
+            SP3EventTiles.region_id.in_(applicable_regions),
+        ).all()
 
-    # Filter out tiles that are shops, docks, or already have stars
-    applicable_region_tiles = [tile for tile in applicable_region_tiles if not is_shop_tile(tile.id) and not is_dock_tile(tile.id) and not is_star_tile(tile.id)]
-    logging.info(f"Applicable region tiles for star placement: {[tile.name for tile in applicable_region_tiles]}")
-    if applicable_region_tiles:
-        new_star_tile = random.choice(applicable_region_tiles)
-        new_star_tile_id = new_star_tile.id
-        logging.info(f"Star moved to tile {new_star_tile.name} (ID: {new_star_tile_id})")
-    else:
-        logging.error("No valid tiles available for star placement.")
-        return {"error": "No valid tiles available for star placement"}, 400
-    
-    old_star_tile_id = save.currentTile
-    event = Events.query.filter_by(id=event_id).first()
-    star_tiles = event.data.get("star_tiles")
-    star_tiles.remove(str(old_star_tile_id))
-    star_tiles.append(str(new_star_tile_id))
-    event.data["star_tiles"] = star_tiles
-    flag_modified(event, "data")
-    db.session.commit()
+        # Filter out tiles that are shops, docks, or already have stars
+        applicable_region_tiles = [tile for tile in applicable_region_tiles if not is_shop_tile(tile.id) and not is_dock_tile(tile.id) and not is_star_tile(tile.id)]
+        logging.info(f"Applicable region tiles for star placement: {[tile.name for tile in applicable_region_tiles]}")
+        if applicable_region_tiles:
+            new_star_tile = random.choice(applicable_region_tiles)
+            new_star_tile_id = new_star_tile.id
+            logging.info(f"Star moved to tile {new_star_tile.name} (ID: {new_star_tile_id})")
+        else:
+            logging.error("No valid tiles available for star placement.")
+            return {"error": "No valid tiles available for star placement"}, 400
+        
+        old_star_tile_id = save.currentTile
+        event = Events.query.filter_by(id=event_id).first()
+        star_tiles = event.data.get("star_tiles")
+        star_tiles.remove(str(old_star_tile_id))
+        star_tiles.append(str(new_star_tile_id))
+        event.data["star_tiles"] = star_tiles
+        flag_modified(event, "data")
+        db.session.commit()
 
-    team_name = EventTeams.query.filter_by(id=team_id).first().name
-    old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
-    old_star_tile_name = old_star_tile.name
-    old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile.region_id).first().name
-    new_star_tile = SP3EventTiles.query.filter_by(id=new_star_tile_id).first()
-    new_star_tile_name = new_star_tile.name
-    new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile.region_id).first().name
-    send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
+        team_name = EventTeams.query.filter_by(id=team_id).first().name
+        old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
+        old_star_tile_name = old_star_tile.name
+        old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile.region_id).first().name
+        new_star_tile = SP3EventTiles.query.filter_by(id=new_star_tile_id).first()
+        new_star_tile_name = new_star_tile.name
+        new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile.region_id).first().name
+        send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
 
-    # Do NOT consume a move for the star interaction itself - only movement consumes moves
     # Update roll state
     if not save.roll_state:
         save.roll_state = RollState(event_id, team_id, roll_remaining_from_client, save.currentTile)
@@ -967,14 +970,12 @@ def _handle_dock_action(event_id, team_id, save, data):
     logging.info(f"Team {team_id} dock action: {data}")
     
     # Handle chartering to a new island
-    if data and data.get("destinationId"):
-        # Actual logic to move to new island's start tile would be here
-        # save.currentTile = new_island_start_tile_id
-        # save.islandId = new_island_id
-        # save.isTileCompleted = False  # Or check challenges on new tile
-        region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
+    if data.get("action", "") == "charter":
+        destination_id = data.get("destinationId")
+        cost = data.get("cost", 0)
+        region = SP3Regions.query.filter(SP3Regions.id == uuid.UUID(destination_id)).first()
 
-        if region.data.get("charter", {}).get(data["destinationId"], 0) != data["cost"]:
+        if region.data.get("charter", {}).get(destination_id, 0) != cost:
             sailing_ticket = False
             print(save.buffs)
             for i, buff in enumerate(save.buffs):
@@ -984,10 +985,7 @@ def _handle_dock_action(event_id, team_id, save, data):
                     sailing_ticket = True
                     break
             
-            if sailing_ticket and data["cost"] == 0:
-                # If the cost is 0, we can assume they are using a sailing ticket
-                save.coins -= data["cost"]
-                save.islandId = uuid.UUID(data["destinationId"])
+            if sailing_ticket and cost == 0:
                 # Get the buff reference in the save data
                 save.buffs[sailing_ticket_buff_index]["uses"] -= 1
                 if save.buffs[sailing_ticket_buff_index]["uses"] <= 0:
@@ -1005,8 +1003,11 @@ def _handle_dock_action(event_id, team_id, save, data):
                 SP3EventTiles.data.has_key('isIslandStart'), 
                 SP3EventTiles.data['isIslandStart'].astext.cast(db.Boolean) == True 
             ).first()
+            
             if start_tile:
+                save.coins -= cost
                 save.currentTile = start_tile.id
+                save.islandId = region.id
             else:
                 logging.error(f"No start tile found for region {region.name} (ID: {region.id})")
                 return {"error": "No start tile found for the selected island."}, 400
