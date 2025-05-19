@@ -856,7 +856,8 @@ def _prepare_star_interaction(event_id, team_id, save, current_tile):
     save.roll_state.action_data = {
         "message": f"Star available at {current_tile.name}!",
         "price": 100,
-        "roll_remaining": save.roll_state.roll_remaining
+        "roll_remaining": save.roll_state.roll_remaining,
+        "coins": save.coins
     }
     return save.roll_state.to_dict()
 
