@@ -973,9 +973,10 @@ def _handle_dock_action(event_id, team_id, save, data):
     if data.get("action", "") == "charter":
         destination_id = data.get("destinationId")
         cost = data.get("cost", 0)
-        region = SP3Regions.query.filter(SP3Regions.id == uuid.UUID(destination_id)).first()
+        destination_region = SP3Regions.query.filter(SP3Regions.id == uuid.UUID(destination_id)).first()
+        starting_region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
 
-        if region.data.get("charter", {}).get(destination_id, 0) != cost:
+        if starting_region.data.get("charter", {}).get(destination_id, 0) != cost:
             sailing_ticket = False
             print(save.buffs)
             for i, buff in enumerate(save.buffs):
@@ -992,14 +993,14 @@ def _handle_dock_action(event_id, team_id, save, data):
                     # Remove the buff if no uses left
                     del save.buffs[sailing_ticket_buff_index]
             else: # Otherwise, they are trying to cheat the system
-                logging.error(f"Invalid cost for chartering to {data['destinationId']}. Expected {region.data['charter'][data['destinationId']]}, got {data['cost']}")
+                logging.error(f"Invalid cost for chartering to {str(destination_id)}. Expected {starting_region.data['charter'][str(destination_id)]}, got {data['cost']}")
                 return {"error": "Invalid cost for chartering to new island."}, 400
 
         # Get the region's start tile
-        if region:
+        if destination_region:
             start_tile = db.session.query(SP3EventTiles).filter(
                 SP3EventTiles.event_id == event_id,
-                SP3EventTiles.region_id == region.id,
+                SP3EventTiles.region_id == destination_region.id,
                 SP3EventTiles.data.has_key('isIslandStart'), 
                 SP3EventTiles.data['isIslandStart'].astext.cast(db.Boolean) == True 
             ).first()
@@ -1007,9 +1008,9 @@ def _handle_dock_action(event_id, team_id, save, data):
             if start_tile:
                 save.coins -= cost
                 save.currentTile = start_tile.id
-                save.islandId = region.id
+                save.islandId = destination_region.id
             else:
-                logging.error(f"No start tile found for region {region.name} (ID: {region.id})")
+                logging.error(f"No start tile found for region {destination_region.name} (ID: {destination_region.id})")
                 return {"error": "No start tile found for the selected island."}, 400
 
         # Remove 1 from the roll remaining for the dock interaction
