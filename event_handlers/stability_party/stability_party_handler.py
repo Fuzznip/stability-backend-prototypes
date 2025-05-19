@@ -877,12 +877,36 @@ def _handle_star_action(event_id, team_id, save, data):
         # Deduct coins for the star purchase
         save.coins -= 100
         save.stars += 1
+    if data.get("action") == "buy":
+        if save.coins < 100:
+            logging.error(f"Not enough coins to purchase star. Required: 100, Available: {save.coins}")
+            return {"error": "Not enough coins to purchase star"}, 400
+        
+        if not is_star_tile(save.currentTile):
+            logging.error(f"Current tile {save.currentTile} is not a star tile.")
+            return {"error": "Current tile is not a star tile"}, 400
+        
+        # Deduct coins for the star purchase
+        save.coins -= 100
+        save.stars += 1
 
         # Move the star to a new tile
         new_star_tile_id = None
         all_regions = SP3Regions.query.all()
         applicable_regions = []
+        # Move the star to a new tile
+        new_star_tile_id = None
+        all_regions = SP3Regions.query.all()
+        applicable_regions = []
 
+        for region in all_regions:
+            if not is_region_populated(region.id):
+                applicable_regions.append(region.id)
+                
+        applicable_region_tiles = SP3EventTiles.query.filter(
+            SP3EventTiles.event_id == event_id,
+            SP3EventTiles.region_id.in_(applicable_regions),
+        ).all()
         for region in all_regions:
             if not is_region_populated(region.id):
                 applicable_regions.append(region.id)
@@ -911,7 +935,34 @@ def _handle_star_action(event_id, team_id, save, data):
         event.data["star_tiles"] = star_tiles
         flag_modified(event, "data")
         db.session.commit()
+        # Filter out tiles that are shops, docks, or already have stars
+        applicable_region_tiles = [tile for tile in applicable_region_tiles if not is_shop_tile(tile.id) and not is_dock_tile(tile.id) and not is_star_tile(tile.id)]
+        logging.info(f"Applicable region tiles for star placement: {[tile.name for tile in applicable_region_tiles]}")
+        if applicable_region_tiles:
+            new_star_tile = random.choice(applicable_region_tiles)
+            new_star_tile_id = new_star_tile.id
+            logging.info(f"Star moved to tile {new_star_tile.name} (ID: {new_star_tile_id})")
+        else:
+            logging.error("No valid tiles available for star placement.")
+            return {"error": "No valid tiles available for star placement"}, 400
+        
+        old_star_tile_id = save.currentTile
+        event = Events.query.filter_by(id=event_id).first()
+        star_tiles = event.data.get("star_tiles")
+        star_tiles.remove(str(old_star_tile_id))
+        star_tiles.append(str(new_star_tile_id))
+        event.data["star_tiles"] = star_tiles
+        flag_modified(event, "data")
+        db.session.commit()
 
+        team_name = EventTeams.query.filter_by(id=team_id).first().name
+        old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
+        old_star_tile_name = old_star_tile.name
+        old_star_tile_region = SP3Regions.query.filter_by(id=old_star_tile.region_id).first().name
+        new_star_tile = SP3EventTiles.query.filter_by(id=new_star_tile_id).first()
+        new_star_tile_name = new_star_tile.name
+        new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile.region_id).first().name
+        send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
         team_name = EventTeams.query.filter_by(id=team_id).first().name
         old_star_tile = SP3EventTiles.query.filter_by(id=old_star_tile_id).first()
         old_star_tile_name = old_star_tile.name
@@ -973,9 +1024,10 @@ def _handle_dock_action(event_id, team_id, save, data):
     if data.get("action", "") == "charter":
         destination_id = data.get("destinationId")
         cost = data.get("cost", 0)
-        region = SP3Regions.query.filter(SP3Regions.id == uuid.UUID(destination_id)).first()
+        destination_region = SP3Regions.query.filter(SP3Regions.id == uuid.UUID(destination_id)).first()
+        starting_region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
 
-        if region.data.get("charter", {}).get(destination_id, 0) != cost:
+        if starting_region.data.get("charter", {}).get(destination_id, 0) != cost:
             sailing_ticket = False
             print(save.buffs)
             for i, buff in enumerate(save.buffs):
@@ -992,24 +1044,25 @@ def _handle_dock_action(event_id, team_id, save, data):
                     # Remove the buff if no uses left
                     del save.buffs[sailing_ticket_buff_index]
             else: # Otherwise, they are trying to cheat the system
-                logging.error(f"Invalid cost for chartering to {data['destinationId']}. Expected {region.data['charter'][data['destinationId']]}, got {data['cost']}")
+                logging.error(f"Invalid cost for chartering to {str(destination_id)}. Expected {starting_region.data['charter'][str(destination_id)]}, got {data['cost']}")
                 return {"error": "Invalid cost for chartering to new island."}, 400
 
         # Get the region's start tile
-        if region:
+        if destination_region:
             start_tile = db.session.query(SP3EventTiles).filter(
                 SP3EventTiles.event_id == event_id,
-                SP3EventTiles.region_id == region.id,
+                SP3EventTiles.region_id == destination_region.id,
                 SP3EventTiles.data.has_key('isIslandStart'), 
                 SP3EventTiles.data['isIslandStart'].astext.cast(db.Boolean) == True 
             ).first()
             
+            
             if start_tile:
                 save.coins -= cost
                 save.currentTile = start_tile.id
-                save.islandId = region.id
+                save.islandId = destination_region.id
             else:
-                logging.error(f"No start tile found for region {region.name} (ID: {region.id})")
+                logging.error(f"No start tile found for region {destination_region.name} (ID: {destination_region.id})")
                 return {"error": "No start tile found for the selected island."}, 400
 
         # Remove 1 from the roll remaining for the dock interaction
