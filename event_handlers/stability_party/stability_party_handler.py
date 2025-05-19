@@ -1038,7 +1038,6 @@ def _handle_dock_action(event_id, team_id, save, data):
                     break
             
             if sailing_ticket and cost == 0:
-            if sailing_ticket and cost == 0:
                 # Get the buff reference in the save data
                 save.buffs[sailing_ticket_buff_index]["uses"] -= 1
                 if save.buffs[sailing_ticket_buff_index]["uses"] <= 0:
