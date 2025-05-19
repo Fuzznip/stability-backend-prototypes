@@ -9,6 +9,8 @@ keeping the definition and functionality together for better maintenance.
 import uuid
 import logging
 from typing import Dict, List, Any, Optional, Callable, Tuple
+from event_handlers.stability_party.save_data import SaveData
+import random
 
 # Dictionary to store all registered items
 ITEM_REGISTRY = {}
@@ -125,7 +127,6 @@ def register_item(
         selection_handler = id + "_selection"
         register_item_handler(selection_handler, selection_func)
 
-    
     item = ItemDefinition(
         id=id,
         name=name,
@@ -169,3 +170,108 @@ def get_handler(handler_name: str) -> Optional[Callable]:
 # ==========================================================
 # Define all items and their handlers below
 # ==========================================================
+
+def lightness_boots_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_data: SaveData, item_data: Dict[str, Any]) -> Dict[str, Any]:
+    save_data.modifier += 1
+    return {
+        "message": f"used Boots of Lightness! Their next roll will be increased by 1.",
+        "modifier": save_data.modifier
+    }
+
+register_item(
+    id="boots_of_lightness",
+    name="Boots of Lightness",
+    description="Adds +1 to your next dice roll",
+    item_type="consumable",
+    rarity="common",
+    base_price=10,
+    handler_func=lightness_boots_handler,
+    uses=1,
+    activation_type="active",
+    data={}
+)
+
+def mini_dice_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_data: SaveData, item_data: Dict[str, Any]) -> Dict[str, Any]:
+    save_data.dice = [3]
+
+    # This is a placeholder for the mini dice handler
+    # The actual implementation would depend on the game logic
+    return {
+        "message": f"used Mini Dice! Your next roll will be between 1 and 3.",
+        "dice": save_data.dice
+    }
+
+register_item(
+    id="mini_dice",
+    name="Mini Dice",
+    description="Your next roll will be between 1 and 3.",
+    item_type="consumable",
+    rarity="common",
+    base_price=15,
+    handler_func=mini_dice_handler,
+    uses=1,
+    activation_type="active",
+    data={}
+)
+    
+def npc_contact_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_data: SaveData, item_data: Dict[str, Any]) -> Dict[str, Any]:
+    available_items = get_items_by_rarity("common") + get_items_by_rarity("uncommon") + get_items_by_rarity("rare")
+    npc_names = ["Duradel", "Turael", "Dark Mage", "Bert the Sandman", "Advisor Ghrim", "Amy", "Watson"]
+
+    # Randomly select an item and an NPC
+    selected_item = random.choice(available_items)
+    selected_npc = random.choice(npc_names)
+    npc_dialogue = [
+        f"{selected_npc}: 'I have a gift for you!'",
+        f"{selected_npc}: 'Take this {selected_item.name}!'",
+        f"{selected_npc}: 'Use it wisely!'"
+    ]
+    from event_handlers.stability_party.item_system import add_item_to_inventory
+    add_item_to_inventory(event_id, team_id, selected_item.id)
+
+    # This is a placeholder for the NPC contact handler
+    # The actual implementation would depend on the game logic
+    return {
+        "message": f"used NPC Contact! {selected_npc} has delivered a {selected_item.name}!\n\n{random.choice(npc_dialogue)}",
+    }
+
+register_item(
+    id="npc_contact",
+    name="NPC Contact",
+    description="Contact an NPC for help. You will be given a random item within their power.",
+    item_type="consumable",
+    rarity="uncommon",
+    base_price=20,
+    handler_func=npc_contact_handler,
+    uses=1,
+    activation_type="active",
+    data={}
+)
+
+def sailing_ticket_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_data: SaveData, item_data: Dict[str, Any]) -> Dict[str, Any]:
+    # This is a placeholder for the sailing ticket handler
+    # The actual implementation would depend on the game logic
+
+    save_data.buffs.append({
+        "type": "sailing_ticket",
+        "uses": 1
+    })
+
+    return {
+        "message": f"used a Sailing Ticket! The next travel will be free.",
+    }
+
+register_item(
+    id="sailing_ticket",
+    name="Sailing Ticket",
+    description="Allows you to travel for free once.",
+    item_type="consumable",
+    rarity="uncommon",
+    base_price=20,
+    handler_func=sailing_ticket_handler,
+    uses=1,
+    activation_type="active",
+    data={}
+)
+
+
