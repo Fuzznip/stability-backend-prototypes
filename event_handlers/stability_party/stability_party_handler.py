@@ -779,7 +779,7 @@ def _prepare_shop_interaction(event_id, team_id, save, current_tile):
     save.roll_state.action_required = RollState.ACTION_TYPES["SHOP"]
     # Actual shop items would be generated here
 
-    items = []#generate_shop_inventory(event_id, shop_tier=1, item_count=3)
+    items = generate_shop_inventory(event_id, shop_tier=1, item_count=3)
 
     # get region name
     region = SP3Regions.query.filter(SP3Regions.id == current_tile.region_id).first()
