@@ -3,6 +3,7 @@ from event_handlers.event_handler import EventSubmission, NotificationResponse, 
 from models.models import Events, EventTeams, EventTeamMemberMappings, EventChallenges, EventTasks, EventTriggers
 from models.stability_party_3 import SP3Regions, SP3EventTiles, SP3EventTileChallengeMapping
 from event_handlers.stability_party.item_system import generate_shop_inventory, get_item_by_id, add_item_to_inventory
+from event_handlers.stability_party.item_definitions import get_items_by_rarity
 from event_handlers.stability_party.save_data import RollState, SaveData, save_team_data
 from event_handlers.stability_party.send_event_notification import send_event_notification
 import uuid
@@ -83,14 +84,14 @@ def create_region_challenge_notification(challenge: EventChallenges, event: Even
         return None
 
     # Example rewards - customize as needed
-    coins_earned = 50 
+    coins_earned = 50
     # Base dice - a D6 if no dice, otherwise use existing dice
     dice_earned = [6] if not save.dice else save.dice
 
     save.coins += coins_earned
     # Logic for adding dice: append, replace, or based on rules
     # For now, let's assume it replaces or is the only dice they get from this
-    save.dice = dice_earned 
+    save.dice = dice_earned
     save.isTileCompleted = True
     save.currentChallenges = []
 
@@ -121,7 +122,7 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
         return None
 
     # Example rewards - customize as needed
-    coins_earned = 10 
+    coins_earned = max(10 - save.islandLaps * 2, 0)
     # Base dice - a D4 if no dice, otherwise use existing dice
     dice_earned = [4] if not save.dice else save.dice
 
@@ -945,9 +946,41 @@ def _handle_star_action(event_id, team_id, save, data):
         return _process_next_move(event_id, team_id, save)
     return _complete_roll(event_id, team_id, save)
 
+def _island_lap_completed(event_id, team_id, save: SaveData):
+    """Check if the team has completed a lap around the island"""
+    logging.info(f"Checking if team {team_id} has completed an island lap.")
+    if save.islandLaps is None:
+        save.islandLaps = 0
+
+    # Check if the current tile is the start tile of the island
+    save.islandLaps += 1
+    logging.info(f"Team {team_id} completed an island lap. Total laps: {save.islandLaps}")
+
+    # Check for island hotspot
+    region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
+    is_hotspot = region.data.get("isHotspot", False) if region else False
+    if is_hotspot:
+        # Each island has its own hotspot logic...
+        logging.info(f"Looking for region name: {region.name}")
+        match region.name:
+            case "Moonwake Cove":
+                if len(save.itemList) >= 3:
+                    logging.info("Too many items for hotspot bonus")
+                    send_event_notification(event_id, team_id, "Moonwake Cove Hotspot Completion", f"completed a hot zone lap but had too many items and were not able to gain any more!")
+                    return
+
+                available_items = get_items_by_rarity("common") + get_items_by_rarity("uncommon")
+                print([item.name for item in available_items])
+                random_pick = random.choice(available_items)
+
+                add_item_to_inventory(event_id, team_id, random_pick.id)
+                send_event_notification(event_id, team_id, "Moonwake Cove Hotspot Completion", f"completed a hot zone lap and received a {random_pick.name}!")
+
 def _prepare_dock_interaction(event_id, team_id, save, current_tile: SP3EventTiles):
     logging.info(f"Preparing DOCK for team {team_id} at {current_tile.name}")
     save.roll_state.action_required = RollState.ACTION_TYPES["DOCK"]
+
+    _island_lap_completed(event_id, team_id, save)
 
     region = SP3Regions.query.filter(SP3Regions.id == current_tile.region_id).first()
     charter_data = region.data.get("charter", [])
@@ -1022,6 +1055,7 @@ def _handle_dock_action(event_id, team_id, save, data):
                 save.coins -= cost
                 save.currentTile = start_tile.id
                 save.islandId = destination_region.id
+                save.islandLaps = 0
             else:
                 logging.error(f"No start tile found for region {destination_region.name} (ID: {destination_region.id})")
                 return {"error": "No start tile found for the selected island."}, 400
@@ -1266,6 +1300,7 @@ def _complete_roll(event_id, team_id, save: SaveData) -> dict:
     save.isRolling = False
     # Clear dice (will be set based on rewards and buffs in future methods)
     save.dice = []
+    save.modifier = 0
     
     if save.roll_state:
         # Reset roll state

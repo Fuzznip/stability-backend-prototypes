@@ -120,6 +120,7 @@ class SaveData:
     stars: int
     coins: int
     islandId: uuid.UUID
+    islandLaps: int
     itemList: list[dict]
     pendingItemActivation: dict
     equipment: Equipment
@@ -155,6 +156,7 @@ class SaveData:
             "stars": self.stars,
             "coins": self.coins,
             "islandId": str(self.islandId) if self.islandId else None,
+            "islandLaps": self.islandLaps,
             "itemList": self.itemList,
             "pendingItemActivation": self.pendingItemActivation,
             "equipment": self.equipment.to_dict() if self.equipment else None,
@@ -182,6 +184,7 @@ class SaveData:
         save_data.stars = data.get("stars", 0)
         save_data.coins = data.get("coins", 0)
         save_data.islandId = uuid.UUID(data["islandId"]) if data.get("islandId") else None
+        save_data.islandLaps = data.get("islandLaps", 0)
         save_data.itemList = data.get("itemList", [])
         save_data.pendingItemActivation = data.get("pendingItemActivation", {})
         save_data.equipment = Equipment.from_dict(data.get("equipment", {}) if "equipment" in data else {})

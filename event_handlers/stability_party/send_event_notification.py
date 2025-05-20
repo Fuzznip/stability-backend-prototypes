@@ -15,7 +15,7 @@ def send_event_notification(event_id: uuid, team_id: uuid, title: str, message: 
         data = {
             "embeds": [
                 {
-                    "title": "Stability Party 3",
+                    "title": title,
                     "description": f"{team.name} has {message}",
                     "color": 0x992D22,  # Example color
                     "thumbnail": {
