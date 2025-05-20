@@ -1215,7 +1215,7 @@ def _complete_roll(event_id, team_id, save: SaveData) -> dict:
             "id": str(current_tile_obj.id), "name": current_tile_obj.name,
             "description": current_tile_obj.description or ""
         }
-        challenge_mappings = SP3EventTileChallengeMapping.query.filter_by(tile_id=current_tile_obj.id).all()
+        challenge_mappings: list[SP3EventTileChallengeMapping] = SP3EventTileChallengeMapping.query.filter_by(tile_id=current_tile_obj.id).all()
         challenge_mappings_count = len(challenge_mappings)
         if challenge_mappings_count == 0:
             logging.info(f"Tile {current_tile_obj.name} has no challenges. Auto-marking as completed.")
@@ -1247,7 +1247,16 @@ def _complete_roll(event_id, team_id, save: SaveData) -> dict:
                             task_strings.append(f"{task.quantity}x {triggers_message}")
 
                 tile_info["description"] = f"Random challenge selected:\n{'\n'.join(task_strings)}"
-                logging.info(f"Random challenge selected for tile {current_tile_obj.name}: {save.currentChallenges}")
+                logging.info(f"Random challenge selected for tile {current_tile_obj.name}: {save.currentChallenges}")        
+    
+            for challenge_map in challenge_mappings:
+                challenge_id = challenge_map.challenge_id
+                tasks = EventChallenges.query.filter_by(id=challenge_id).first().tasks
+                if challenge_id not in save.tileProgress:
+                    save.tileProgress[str(challenge_id)] = {}
+
+                for task_id in tasks:
+                    save.tileProgress[str(challenge_id)][str(task_id)] = 0 # Reset task progress for the challenge
     else:
         logging.warning(f"Final tile ID {save.currentTile} not found. Cannot determine challenges.")
         tile_info = {"id": str(save.currentTile), "name": "Unknown Tile (Not Found)"}
