@@ -173,8 +173,11 @@ def generate_shop_inventory(event_id: str, shop_tier: int = 1, item_count: int =
             
             # Calculate price with some randomness
             base_price = item["base_price"]
-            price_variance = random.uniform(0.8, 1.2)  # 20% variance
-            final_price = int(base_price * price_variance)
+            if base_price >= 10: # Only apply variance if base price is above a threshold
+                price_variance = random.uniform(0.8, 1.2)  # 20% variance
+                final_price = int(base_price * price_variance)
+            else:
+                final_price = base_price
             
             # Add item to shop inventory
             shop_items.append({

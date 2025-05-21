@@ -9,7 +9,7 @@ keeping the definition and functionality together for better maintenance.
 import uuid
 import logging
 from typing import Dict, List, Any, Optional, Callable, Tuple
-from event_handlers.stability_party.save_data import SaveData
+from event_handlers.stability_party.save_data import SaveData, save_team_data
 import random
 
 # Dictionary to store all registered items
@@ -693,5 +693,68 @@ register_item(
     handler_func=complete_current_tile_handler,
     uses=1,
     activation_type="active",
+    data={}
+)
+
+def moonlight_moth_mix_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_data: SaveData, item_data: Dict[str, Any]) -> Dict[str, Any]:
+    from models.models import EventTeams
+    from models.stability_party_3 import SP3EventTiles, SP3Regions
+    team_id = uuid.UUID(team_id) # WHY DO I NEED THIS????
+    teams = EventTeams.query.filter_by(event_id=event_id).all()
+    available_teams = [team for team in teams if team.id != team_id]
+    if not available_teams:
+        return { "error": "No other teams available to select." }
+    
+    options = []
+    for team in available_teams:
+        print(f"{team.id}{type(team.id)} VS {team_id}{type(team_id)}")
+        available_team_name = team.name
+        available_team_id = str(team.id)
+        available_team_coins = team.data.get("coins", 0)
+        available_team_stars = team.data.get("stars", 0)
+
+        options.append({
+            "name": available_team_name,
+            "description": f"{available_team_stars} stars, {available_team_coins} coins",
+            "value": available_team_id
+        })
+
+    return {
+        "message": f"used a Moonlight Moth Mix! Select an additional team to award 20 coins to.",
+        "options": options
+    }
+
+def moonlight_moth_mix_selection_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_data: SaveData, item_data: Dict[str, Any], selected_value: str) -> Dict[str, Any]:
+    try:
+        selected_value = uuid.UUID(selected_value)
+    except ValueError:
+        return { "error": "Invalid team ID." }
+    
+    from models.models import EventTeams
+    team = EventTeams.query.filter_by(id=team_id).first()
+    selected_team = EventTeams.query.filter_by(id=selected_value).first()
+    selected_team_save_data = SaveData.from_dict(selected_team.data)
+    save_data.coins += 20
+    selected_team_save_data.coins += 20
+    
+    # We only need to save the selected team data since our team data will be saved automatically
+    save_team_data(selected_team, selected_team_save_data)
+
+    return {
+        "message": f"used a Moonlight Moth Mix! 20 coins have been awarded to {team.name} (Now {save_data.coins} coins) and {selected_team.name} (Now {selected_team_save_data.coins} coins).",
+    }
+
+register_item(
+    id="moonlight_moth_mix",
+    name="Moonlight Moth Mix",
+    description="Select another team. You will both receive 20 coins.",
+    item_type="consumable",
+    rarity="epic",
+    base_price=0,
+    handler_func=moonlight_moth_mix_handler,
+    selection_func=moonlight_moth_mix_selection_handler,
+    uses=1,
+    activation_type="active",
+    requires_selection=True,
     data={}
 )
