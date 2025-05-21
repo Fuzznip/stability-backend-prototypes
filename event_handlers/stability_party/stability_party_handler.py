@@ -122,7 +122,10 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
         return None
 
     # Example rewards - customize as needed
-    coins_earned = max(10 - save.islandLaps * 2, 0)
+    if region.data.get("isHotspot", False):
+        coins_earned = 10
+    else:
+        coins_earned = max(10 - save.islandLaps * 2, 0)
     # Base dice - a D4 if no dice, otherwise use existing dice
     dice_earned = [4] if not save.dice else save.dice
 
