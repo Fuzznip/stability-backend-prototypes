@@ -562,6 +562,17 @@ def _initiate_new_roll(event_id, team_id, save: SaveData, data: dict) -> None:
         roll_total = sum(dice_results)
         modifier_val = 0
         logging.warning(f"Invalid modifier, defaulting to sum of dice: {roll_total}")
+
+    region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
+    if region.data.get("isHotspot", False):
+        # Check to see if the island is "Mountain Mayhem"
+        if region.name == "Mountain Mayhem" and save.islandLaps == 0:
+            # We are in "Mountain Mode". Every roll will be a 1.
+            roll_total = 1
+            dice_results = [1]
+            modifier_val = 0
+            team = EventTeams.query.filter_by(id=team_id).first()
+            logging.info(f"Mountain Mayhem active. Roll total set to 1 for team {team.name} ({team_id}).")
     
     save.roll_state = RollState(event_id, team_id, roll_total, save.currentTile)
     save.roll_state.dice_results_for_roll = dice_results
@@ -949,7 +960,7 @@ def _handle_star_action(event_id, team_id, save, data):
         new_star_tile = SP3EventTiles.query.filter_by(id=new_star_tile_id).first()
         new_star_tile_name = new_star_tile.name
         new_star_tile_region = SP3Regions.query.filter_by(id=new_star_tile.region_id).first().name
-        send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"{team_name} has purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
+        send_event_notification(event_id, team_id, f"{team_name} has purchased a star!", f"purchased the star on {old_star_tile_name} on {old_star_tile_region}!\n\nThe star has been moved to {new_star_tile_name} on {new_star_tile_region}!")
 
     # Update roll state
     if not save.roll_state:
@@ -992,6 +1003,16 @@ def _island_lap_completed(event_id, team_id, save: SaveData):
 
                 add_item_to_inventory(event_id, team_id, random_pick.id)
                 send_event_notification(event_id, team_id, "Moonwake Cove Hotspot Completion", f"completed a hot zone lap and received a {random_pick.name}!")
+            case "Mountain Mayhem":
+                if save.islandLaps > 1:
+                    logging.info("Can only complete the mountain challenge once")
+                    return
+                
+                # If the team has completed the mountain challenge, they get a star
+                save.stars += 1
+                team = EventTeams.query.filter_by(id=team_id).first()
+                logging.info(f"Team {team.name} ({team_id}) completed the Mountain Challenge. Added one star to give total stars: {save.stars}")
+                send_event_notification(event_id, team_id, "The Mountain Has Been Conquered", f"completed the Mountain Challenge and received a star!\n\nTotal stars: {save.stars}")
 
 def _prepare_dock_interaction(event_id, team_id, save, current_tile: SP3EventTiles):
     logging.info(f"Preparing DOCK for team {team_id} at {current_tile.name}")
@@ -1067,12 +1088,20 @@ def _handle_dock_action(event_id, team_id, save, data):
                 SP3EventTiles.data['isIslandStart'].astext.cast(db.Boolean) == True 
             ).first()
             
-            
             if start_tile:
                 save.coins -= cost
                 save.currentTile = start_tile.id
                 save.islandId = destination_region.id
                 save.islandLaps = 0
+
+                region = SP3Regions.query.filter(SP3Regions.id == save.islandId).first()
+                if region.data.get("isHotspot", False):
+                    # Check to see if the island is "Mountain Mayhem"
+                    if region.name == "Mountain Mayhem":
+                        # We are in "Mountain Mode". Every roll will be a 1.
+                        team = EventTeams.query.filter_by(id=team_id).first()
+                        logging.info(f"Mountain Mayhem active. Rest of the roll totaling {save.roll_state.roll_remaining} has been reduced to 1, ensuring that we land on tile 1 for team {team.name} ({team_id}).")
+                        save.roll_state.roll_remaining = 1
             else:
                 logging.error(f"No start tile found for region {destination_region.name} (ID: {destination_region.id})")
                 return {"error": "No start tile found for the selected island."}, 400
