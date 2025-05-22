@@ -102,9 +102,16 @@ def create_region_challenge_notification(challenge: EventChallenges, event: Even
         NotificationField(name="New Dice", value=f"Earned a {dice_earned[0]} sided die!", inline=True)
     ]
 
+    if submission.type == "LOOT":
+        notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
+    elif submission.type == "KILL_COUNT":
+        notification_title = f"{submission.rsn}: {submission.trigger} from {submission.source} ({submission.quantity})"
+    else:
+        notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
+
     return NotificationResponse(
         threadId=event.thread_id,
-        title=f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}",
+        title=notification_title,
         description=f"For completing the Region Challenge on **{region.name}**, {team.name} have earned {coins_earned} coins and a {dice_earned[0]}-sided die!",
         color=0x992D22, # Example color
         author=NotificationAuthor(name=f"{team.name}: {region.name}", icon_url=team.image if team.image else None),
@@ -143,9 +150,16 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
         NotificationField(name="New Dice", value=f"Earned a {dice_earned[0]} sided die!", inline=True)
     ]
 
+    if submission.type == "LOOT":
+        notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
+    elif submission.type == "KILL_COUNT":
+        notification_title = f"{submission.rsn}: {submission.trigger} from {submission.source} ({submission.quantity})"
+    else:
+        notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
+
     return NotificationResponse(
         threadId=event.thread_id,
-        title=f"{submission.rsn}: {submission.trigger} from {submission.source}",
+        title=notification_title,
         description=f"For completing the tile: **{tile.name}**, {team.name} have earned {coins_earned} coins and a {dice_earned[0]}-sided die!",
         color=0x992D22, # Example color
         author=NotificationAuthor(name=f"{team.name}: {tile.name} ({region.name})", icon_url=team.image if team.image else None),
