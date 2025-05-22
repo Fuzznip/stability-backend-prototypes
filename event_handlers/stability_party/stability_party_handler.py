@@ -104,8 +104,8 @@ def create_region_challenge_notification(challenge: EventChallenges, event: Even
 
     if submission.type == "LOOT":
         notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
-    elif submission.type == "KILL_COUNT":
-        notification_title = f"{submission.rsn}: {submission.trigger} from {submission.source} ({submission.quantity})"
+    elif submission.type == "KC":
+        notification_title = f"{submission.rsn}: Killed {submission.trigger}"
     else:
         notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
 
@@ -152,8 +152,8 @@ def create_tile_challenge_notification(challenge_mapping: SP3EventTileChallengeM
 
     if submission.type == "LOOT":
         notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
-    elif submission.type == "KILL_COUNT":
-        notification_title = f"{submission.rsn}: {submission.trigger} from {submission.source} ({submission.quantity})"
+    elif submission.type == "KC":
+        notification_title = f"{submission.rsn}: Killed {submission.trigger}"
     else:
         notification_title = f"{submission.rsn}: {f"{submission.quantity}x " if submission.quantity > 1 else ""}{submission.trigger} from {submission.source}"
 
