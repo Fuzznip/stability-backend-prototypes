@@ -1013,6 +1013,17 @@ def _island_lap_completed(event_id, team_id, save: SaveData):
                 team = EventTeams.query.filter_by(id=team_id).first()
                 logging.info(f"Team {team.name} ({team_id}) completed the Mountain Challenge. Added one star to give total stars: {save.stars}")
                 send_event_notification(event_id, team_id, "The Mountain Has Been Conquered", f"completed the Mountain Challenge and received a star!\n\nTotal stars: {save.stars}")
+            case "Raid-ical Island":
+                if save.islandLaps >= 3:
+                    logging.info("Can only complete the raid-ical challenge three times")
+                    return
+                
+                # If the team has completed the raid-ical challenge, they get 50 coins
+                save.coins += 50
+                team = EventTeams.query.filter_by(id=team_id).first()
+                logging.info(f"Team {team.name} ({team_id}) completed the Raid-ical Challenge. Added 50 coins to give total coins: {save.coins}")
+                send_event_notification(event_id, team_id, "Raid-ical Island Challenge Completed", f"completed the Raid-ical Challenge and received 50 coins!\n\nTotal coins: {save.coins}")
+
 
 def _prepare_dock_interaction(event_id, team_id, save, current_tile: SP3EventTiles):
     logging.info(f"Preparing DOCK for team {team_id} at {current_tile.name}")
