@@ -244,6 +244,15 @@ def progress_region_challenge(challenge: uuid.UUID, event: Events, team: EventTe
             if is_challenge_completed(challenge, task, save):
                 logging.info(f"Challenge {challenge.id} (type: {challenge.type}) completed by team {team.id} due to task {task.id} progress.")
 
+                challenges = get_region_challenges(save)
+                for challenge_id in challenges:
+                    tasks = EventChallenges.query.filter_by(id=challenge_id).first().tasks
+                    if challenge_id not in save.tileProgress:
+                        save.tileProgress[str(challenge_id)] = {}
+
+                    for task_id in tasks:
+                        save.tileProgress[str(challenge_id)][str(task_id)] = 0 # Reset task progress for the challenge
+
                 return create_region_challenge_notification(challenge, event, team, save, submission)
             
     return None
