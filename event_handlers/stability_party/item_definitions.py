@@ -671,6 +671,7 @@ def complete_current_tile_handler(event_id: uuid.UUID, team_id: uuid.UUID, save_
     # This is a placeholder for the complete current tile handler
     # The actual implementation would depend on the game logic
     save_data.isTileCompleted = True
+    save_data.currentChallenges = []
     save_data.dice = [4]
 
     from models.stability_party_3 import SP3EventTiles, SP3Regions
