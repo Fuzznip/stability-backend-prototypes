@@ -365,11 +365,24 @@ def is_game_accepting_submissions(event: Events) -> bool:
     # Placeholder for global game state checks (e.g., event paused)
     return True # For now, assume game always accepts if event is active
 
-def get_team(eventId: uuid.UUID, rsn: str) -> EventTeams:
+def get_team_from_rsn(eventId: uuid.UUID, rsn: str) -> EventTeams:
     # Case-insensitive search for RSN in EventTeamMemberMappings
     team_mapping = EventTeamMemberMappings.query.filter(
         EventTeamMemberMappings.event_id == eventId,
         EventTeamMemberMappings.username.ilike(rsn) # Use ilike for case-insensitive
+    ).first()
+    if team_mapping is None:
+        return None
+    return EventTeams.query.filter(EventTeams.id == team_mapping.team_id).first()
+
+def get_team_from_discord_id(eventId: uuid.UUID, discord_id: str) -> EventTeams:
+    if discord_id is None or discord_id == "":
+        logging.warning(f"Discord ID is None or empty for event {eventId}. Cannot find team.")
+        return None
+    # Case-insensitive search for Discord ID in EventTeamMemberMappings
+    team_mapping = EventTeamMemberMappings.query.filter(
+        EventTeamMemberMappings.event_id == eventId,
+        EventTeamMemberMappings.discord_id.ilike(discord_id) # Use ilike for case-insensitive
     ).first()
     if team_mapping is None:
         return None
@@ -387,9 +400,12 @@ def stability_party_handler(submission: EventSubmission) -> list[NotificationRes
         logging.info(f"No active STABILITY_PARTY event found for submission by {submission.rsn}.")
         return None # Or an empty list
 
-    team = get_team(event.id, submission.rsn)
+    team = get_team_from_rsn(event.id, submission.rsn)
     if team is None:
-        logging.info(f"Team not found for RSN '{submission.rsn}' in event '{event.name}' (ID: {event.id}).")
+        team = get_team_from_discord_id(event.id, submission.id)
+    
+    if team is None:
+        logging.info(f"Team not found for RSN '{submission.rsn}' or ID '{submission.id}' in event '{event.name}' (ID: {event.id}).")
         return None
 
     # Ensure team.data is not None before passing to SaveData.from_dict
